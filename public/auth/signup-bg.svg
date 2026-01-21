@@ -1,0 +1,26 @@
+<svg width="1600" height="1600" viewBox="0 0 1600 1600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="240" y1="220" x2="1400" y2="1450" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06B6D4"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <radialGradient id="r1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(380 420) rotate(45) scale(760)">
+      <stop stop-color="white" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="r2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1200 1120) rotate(45) scale(880)">
+      <stop stop-color="white" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="1600" fill="url(#g)"/>
+  <circle cx="420" cy="460" r="520" fill="url(#r1)"/>
+  <circle cx="1200" cy="1120" r="620" fill="url(#r2)"/>
+
+  <g opacity="0.35" stroke="white" stroke-width="6">
+    <path d="M220 980C420 760 650 700 880 790C1110 880 1280 760 1460 540"/>
+    <path d="M220 1120C440 900 660 850 910 940C1160 1030 1320 920 1460 720"/>
+    <path d="M220 1260C460 1040 690 1010 940 1100C1190 1190 1340 1090 1460 900"/>
+  </g>
+</svg>
