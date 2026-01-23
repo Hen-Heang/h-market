@@ -5,10 +5,46 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignUpCard() {
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, confirmPassword }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true; email: string }
+        | { ok: false; message?: string }
+        | null;
+
+      if (!res.ok || !data || ("ok" in data && data.ok === false)) {
+        setError((data && "message" in data && data.message) || "Signup failed");
+        return;
+      }
+
+      const nextEmail = (data as { ok: true; email: string }).email;
+      router.push(`/auth/verify-email?email=${encodeURIComponent(nextEmail)}`);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.section
@@ -63,17 +99,28 @@ export default function SignUpCard() {
             </p>
           </div>
 
-          <form className="mt-8 space-y-4">
-            <InputRow type="email" placeholder="Email" leftIcon={<Mail className="h-4 w-4" />} />
+          <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+            <InputRow
+              type="email"
+              placeholder="Email"
+              leftIcon={<Mail className="h-4 w-4" />} 
+              value={email}
+              onChange={setEmail}
+              disabled={loading}
+            />
 
             <InputRow
               type={showPw ? "text" : "password"}
               placeholder="Password"
               leftIcon={<Lock className="h-4 w-4" />}
+              value={password}
+              onChange={setPassword}
+              disabled={loading}
               rightIcon={
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
+                  disabled={loading}
                   className="text-zinc-400 transition hover:text-zinc-600"
                   aria-label="Toggle password"
                 >
@@ -86,10 +133,14 @@ export default function SignUpCard() {
               type={showConfirmPw ? "text" : "password"}
               placeholder="Confirm Password"
               leftIcon={<Lock className="h-4 w-4" />}
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              disabled={loading}
               rightIcon={
                 <button
                   type="button"
                   onClick={() => setShowConfirmPw((v) => !v)}
+                  disabled={loading}
                   className="text-zinc-400 transition hover:text-zinc-600"
                   aria-label="Toggle confirm password"
                 >
@@ -98,13 +149,20 @@ export default function SignUpCard() {
               }
             />
 
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {error}
+              </div>
+            )}
+
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
+              disabled={loading}
               className="mt-2 w-full rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95"
             >
-              Sign up
+              {loading ? "Signing up..." : "Sign up"}
             </motion.button>
 
             <div className="my-3 flex items-center gap-3">
@@ -136,11 +194,17 @@ function InputRow({
   placeholder,
   leftIcon,
   rightIcon,
+  value,
+  onChange,
+  disabled,
 }: {
   type: string;
   placeholder: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  value?: string;
+  onChange?: (val: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="group relative">
@@ -151,6 +215,9 @@ function InputRow({
       <input
         type={type}
         placeholder={placeholder}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange?.(e.target.value)}
         className="w-full rounded-lg border border-zinc-200 bg-white px-10 py-2.5 text-sm text-zinc-900 outline-none transition
                    focus:border-cyan-400 focus:ring-4 focus:ring-cyan-200/50
                    hover:border-zinc-300"

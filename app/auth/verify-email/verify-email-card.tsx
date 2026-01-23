@@ -5,10 +5,81 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import OtpInput from "@/components/auth/OtpInput";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function VerifyEmailCard() {
-  const email = useMemo(() => "you@example.com", []); // TODO: replace with your state/query
+  const params = useSearchParams();
+  const router = useRouter();
+  const email = useMemo(() => (params.get("email") ?? "").trim(), [params]);
   const [otp, setOtp] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const onVerify = async () => {
+    setError(null);
+    setInfo(null);
+    if (!email) {
+      setError("Missing email. Please go back to signup.");
+      return;
+    }
+    if (otp.length < 4) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: otp }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true }
+        | { ok: false; message?: string }
+        | null;
+
+      if (!res.ok || !data || ("ok" in data && data.ok === false)) {
+        setError((data && "message" in data && data.message) || "Verification failed");
+        return;
+      }
+
+      router.push("/auth/signup/signup-success");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onResend = async () => {
+    setError(null);
+    setInfo(null);
+    if (!email) {
+      setError("Missing email. Please go back to signup.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true }
+        | { ok: false; message?: string }
+        | null;
+      if (!res.ok || !data || ("ok" in data && data.ok === false)) {
+        setError((data && "message" in data && data.message) || "Resend failed");
+        return;
+      }
+      setInfo("Verification code resent.");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.section
@@ -31,7 +102,9 @@ export default function VerifyEmailCard() {
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
           Enter the verification code we just sent to{" "}
-          <span className="font-semibold text-cyan-700">{email}</span>
+          <span className="font-semibold text-cyan-700">
+            {email || "(missing email)"}
+          </span>
         </p>
       </div>
 
@@ -44,13 +117,24 @@ export default function VerifyEmailCard() {
         <button
           type="button"
           className="font-semibold text-cyan-700 hover:underline"
-          onClick={() => {
-            // TODO: call resend API
-          }}
+          disabled={loading}
+          onClick={onResend}
         >
           Resend email
         </button>
       </div>
+
+      {error && (
+        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-xs text-red-700">
+          {error}
+        </div>
+      )}
+
+      {info && (
+        <div className="mt-6 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-center text-xs text-cyan-800">
+          {info}
+        </div>
+      )}
 
       <div className="mt-8 flex justify-center">
         <motion.div
@@ -58,16 +142,17 @@ export default function VerifyEmailCard() {
           whileTap={{ scale: 0.98 }}
           className="w-full max-w-md"
         >
-          <Link
-            href="/auth/signup/signup-success"
-            aria-disabled={otp.length < 4}
+          <button
+            type="button"
+            onClick={onVerify}
+            disabled={loading || otp.length < 4}
             className={[
-              "block rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95",
-              otp.length < 4 ? "pointer-events-none opacity-60" : "",
+              "block w-full rounded-lg bg-linear-to-r from-cyan-600 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95",
+              loading || otp.length < 4 ? "pointer-events-none opacity-60" : "",
             ].join(" ")}
           >
-            Verify
-          </Link>
+            {loading ? "Verifying..." : "Verify"}
+          </button>
         </motion.div>
       </div>
     </motion.section>
