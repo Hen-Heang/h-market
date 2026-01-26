@@ -3,47 +3,39 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Mail, Lock, CheckCircle2, Handshake, ShoppingCart } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { register } from "@/services/auth";
 
 export default function SignUpCard() {
   const [showPw, setShowPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const params = useSearchParams();
+  const initialRole = (params.get("role") ?? "").toUpperCase() === "PARTNER" ? "PARTNER" : "MERCHANT";
+  const [role, setRole] = useState<"PARTNER" | "MERCHANT">(initialRole);
+  const roleId = role === "PARTNER" ? 1 : 2;
+
+  const signupMutation = useMutation({
+    mutationFn: async () => register({ email, password, roleId }),
+    onSuccess: (data) => {
+      const nextEmail = data.email;
+      router.push(`/auth/login?registered=1&email=${encodeURIComponent(nextEmail)}`);
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Signup failed";
+      setError(message);
+    },
+  });
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, confirmPassword }),
-      });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true; email: string }
-        | { ok: false; message?: string }
-        | null;
-
-      if (!res.ok || !data || ("ok" in data && data.ok === false)) {
-        setError((data && "message" in data && data.message) || "Signup failed");
-        return;
-      }
-
-      const nextEmail = (data as { ok: true; email: string }).email;
-      router.push(`/auth/verify-email?email=${encodeURIComponent(nextEmail)}`);
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    signupMutation.mutate();
   };
 
   return (
@@ -51,62 +43,73 @@ export default function SignUpCard() {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5"
+      className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5"
     >
-      <div className="grid md:grid-cols-2">
-        <div className="relative hidden min-h-[520px] md:block">
-          <Image src="/auth/signup-bg.svg" alt="Background" fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-b from-cyan-600/75 to-cyan-700/80" />
-
-          <Link
-            href="/"
-            className="absolute left-5 top-5 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur transition hover:bg-white/30"
-            aria-label="Back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-
-          <div className="absolute bottom-10 left-10 right-10 text-white">
-            <h2 className="text-3xl font-semibold leading-snug">
-              Discover the best <br />
-              supplier in <br />
-              Cambodia.
-            </h2>
-            <p className="mt-3 text-sm text-white/90">Becoming the best supplier with us now!</p>
-          </div>
-        </div>
-
-        <div className="p-7 md:p-10">
-          <div className="mb-6 flex md:hidden">
+      <div className="grid md:grid-cols-[0.95fr_1.05fr]">
+        <div className="relative p-7 md:p-10">
+          <div className="md:hidden">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600/10 text-emerald-700 transition hover:bg-emerald-600/20"
+              aria-label="Back"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+              <ArrowLeft className="h-5 w-5" />
             </Link>
           </div>
 
-          <div className="text-center">
-            <p className="text-sm text-zinc-500">Welcome to</p>
-            <h1 className="mt-1 text-2xl font-semibold text-zinc-900">
-              <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                H-Market
-              </span>
+          <div className="pt-8 text-center md:pt-2">
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-600">Create Workspace</p>
+            <h1 className="mt-3 text-2xl font-semibold text-slate-900 md:text-3xl">
+              Start selling and sourcing smarter
             </h1>
-            <p className="mt-2 text-xs text-zinc-500">
-              Fill in your information to start journey with us
+            <p className="mt-2 text-xs text-slate-500">
+              Join a trusted network of partners and merchants.
             </p>
           </div>
 
           <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Select role
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {[
+                  { key: "PARTNER" as const, label: "Partner", desc: "Sell and distribute products." },
+                  { key: "MERCHANT" as const, label: "Merchant", desc: "Source trusted inventory." },
+                ].map((option) => (
+                  <label
+                    key={option.key}
+                    className={[
+                      "flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-left text-sm transition",
+                      role === option.key
+                        ? "border-emerald-300 bg-emerald-50/60 ring-2 ring-emerald-100"
+                        : "border-slate-200 bg-white hover:border-slate-300",
+                    ].join(" ")}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value={option.key}
+                      checked={role === option.key}
+                      onChange={() => setRole(option.key)}
+                      className="mt-1 h-4 w-4 text-emerald-600"
+                    />
+                    <div>
+                      <div className="font-semibold text-slate-900">{option.label}</div>
+                      <div className="text-xs text-slate-500">{option.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <InputRow
               type="email"
               placeholder="Email"
-              leftIcon={<Mail className="h-4 w-4" />} 
+              leftIcon={<Mail className="h-4 w-4" />}
               value={email}
               onChange={setEmail}
-              disabled={loading}
+              disabled={signupMutation.isPending}
             />
 
             <InputRow
@@ -115,36 +118,16 @@ export default function SignUpCard() {
               leftIcon={<Lock className="h-4 w-4" />}
               value={password}
               onChange={setPassword}
-              disabled={loading}
+              disabled={signupMutation.isPending}
               rightIcon={
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  disabled={loading}
-                  className="text-zinc-400 transition hover:text-zinc-600"
+                  disabled={signupMutation.isPending}
+                  className="text-slate-400 transition hover:text-slate-600"
                   aria-label="Toggle password"
                 >
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              }
-            />
-
-            <InputRow
-              type={showConfirmPw ? "text" : "password"}
-              placeholder="Confirm Password"
-              leftIcon={<Lock className="h-4 w-4" />}
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              disabled={loading}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPw((v) => !v)}
-                  disabled={loading}
-                  className="text-zinc-400 transition hover:text-zinc-600"
-                  aria-label="Toggle confirm password"
-                >
-                  {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               }
             />
@@ -159,30 +142,94 @@ export default function SignUpCard() {
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading}
-              className="mt-2 w-full rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95"
+              disabled={signupMutation.isPending}
+              className="mt-2 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
-              {loading ? "Signing up..." : "Sign up"}
+              {signupMutation.isPending ? "Signing up..." : "Create account"}
             </motion.button>
 
             <div className="my-3 flex items-center gap-3">
-              <div className="h-px flex-1 bg-zinc-200" />
-              <span className="text-xs text-zinc-500">Or connect with</span>
-              <div className="h-px flex-1 bg-zinc-200" />
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs text-slate-500">Or connect with</span>
+              <div className="h-px flex-1 bg-slate-200" />
             </div>
 
             <div className="flex justify-center gap-3">
-              <SocialBtn label="Facebook" icon="f" />
-              <SocialBtn label="Google" icon="G" />
+              <SocialBtn label="Google" icon="google" />
             </div>
 
-            <p className="pt-2 text-center text-xs text-zinc-500">
-              Already have an account?{" "}
-              <Link href="/auth" className="font-semibold text-cyan-700 hover:underline">
+            <p className="pt-2 text-center text-xs text-slate-500">
+              Already have access?{" "}
+              <Link href="/auth" className="font-semibold text-emerald-700 hover:underline">
                 Sign in
               </Link>
             </p>
           </form>
+        </div>
+
+        <div className="relative hidden min-h-[560px] overflow-hidden md:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,_rgba(16,185,129,0.2),_transparent_45%),_radial-gradient(circle_at_85%_10%,_rgba(249,115,22,0.22),_transparent_40%),_linear-gradient(160deg,_#ffffff_0%,_#f1f5f9_40%,_#ecfeff_100%)]" />
+          <div className="absolute inset-0 opacity-40">
+            <Image src="/auth/signup-bg.svg" alt="Background" fill className="object-cover" priority />
+          </div>
+
+          <div className="relative flex h-full flex-col justify-between p-10 text-slate-900">
+            <div>
+              <Link
+                href="/"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+                aria-label="Back"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+
+              <div className="mt-10">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Ecommerce Network
+                </div>
+                <h2 className="mt-6 text-3xl font-semibold leading-snug">
+                  Build reliable supply chains and unlock new revenue.
+                </h2>
+                <p className="mt-3 text-sm text-slate-600">
+                  From onboarding to fulfillment, automate every step with shared visibility.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
+                  <div className="text-base font-semibold">99.2%</div>
+                  <div className="text-slate-500">on-time delivery</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
+                  <div className="text-base font-semibold">14k</div>
+                  <div className="text-slate-500">monthly orders</div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 text-sm text-slate-600">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                    <Handshake className="h-4 w-4" />
+                  </div>
+                  Verified partners and contracts
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                    <ShoppingCart className="h-4 w-4" />
+                  </div>
+                  Smart ordering and pricing rules
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  Compliance checks built in
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </motion.section>
@@ -208,7 +255,7 @@ function InputRow({
 }) {
   return (
     <div className="group relative">
-      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 transition group-focus-within:text-cyan-600">
+      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-emerald-600">
         {leftIcon}
       </div>
 
@@ -218,9 +265,9 @@ function InputRow({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange?.(e.target.value)}
-        className="w-full rounded-lg border border-zinc-200 bg-white px-10 py-2.5 text-sm text-zinc-900 outline-none transition
-                   focus:border-cyan-400 focus:ring-4 focus:ring-cyan-200/50
-                   hover:border-zinc-300"
+        className="w-full rounded-xl border border-slate-200 bg-white px-10 py-2.5 text-sm text-slate-900 outline-none transition
+                   focus:border-emerald-400 focus:ring-4 focus:ring-emerald-200/60
+                   hover:border-slate-300"
       />
 
       {rightIcon && (
@@ -230,16 +277,16 @@ function InputRow({
   );
 }
 
-function SocialBtn({ label, icon }: { label: string; icon: string }) {
+function SocialBtn({ label, icon }: { label: string; icon: "google" }) {
   return (
     <motion.button
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       type="button"
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-50"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
       aria-label={label}
     >
-      {icon}
+      <Image src="/icons/google.svg" alt="Google" width={16} height={16} />
     </motion.button>
   );
 }

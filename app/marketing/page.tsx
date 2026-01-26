@@ -6,7 +6,7 @@ import Footer from "@/components/marketing/Footer";
 
 export default function MarketingPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-white to-cyan-50/40">
+    <main className="min-h-screen marketing-bg text-slate-900">
       <Navbar />
       <Hero />
       <Features />

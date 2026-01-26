@@ -98,7 +98,7 @@ export default function RoleSelectCard() {
           className="w-full max-w-xl"
         >
           <Link
-            href={`/auth/verify-email?role=${role}`}
+            href={`/auth/signup?role=${role}`}
             className="block rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95"
           >
             Continue
