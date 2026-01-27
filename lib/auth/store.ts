@@ -6,6 +6,7 @@ export type UserRecord = {
   email: string;
   passwordHash: string;
   passwordSalt: string;
+  roleId?: number;
   emailVerifiedAt: string | null;
   verification?: {
     otpHash: string;

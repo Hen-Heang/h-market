@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { hashWithSalt, newSalt, randomId } from "@/lib/auth/crypto";
+import { findUserByEmail, upsertUser } from "@/lib/auth/store";
 
 export const runtime = "nodejs";
 
@@ -33,7 +35,30 @@ export async function POST(req: Request) {
   if (![1, 2].includes(roleId)) return jsonError("Missing role");
 
   const baseUrl = resolveBaseUrl();
-  if (!baseUrl) return jsonError("Missing API base URL", 500);
+  if (!baseUrl) {
+    const existing = await findUserByEmail(email);
+    if (existing) return jsonError("Email already registered", 409);
+
+    const passwordSalt = newSalt();
+    const passwordHash = hashWithSalt(password, passwordSalt);
+    const now = new Date().toISOString();
+
+    await upsertUser({
+      id: randomId(),
+      email,
+      passwordHash,
+      passwordSalt,
+      roleId,
+      emailVerifiedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return NextResponse.json(
+      { ok: true, email },
+      { status: 201, headers: { "x-data-source": "mock" } }
+    );
+  }
 
   const res = await fetch(`${baseUrl}/auth/register`, {
     method: "POST",

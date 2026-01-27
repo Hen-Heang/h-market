@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { verifyHash, randomId } from "@/lib/auth/crypto";
+import { findUserByEmail } from "@/lib/auth/store";
 
 export const runtime = "nodejs";
 
@@ -13,6 +15,14 @@ function jsonError(message: string, status = 400) {
 
 function resolveBaseUrl() {
   return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+}
+
+function deriveUserId(raw: string) {
+  return (
+    raw
+      .split("")
+      .reduce((hash, ch) => (hash * 31 + ch.charCodeAt(0)) >>> 0, 7) % 100_000_000
+  );
 }
 
 export async function POST(req: Request) {
@@ -30,7 +40,23 @@ export async function POST(req: Request) {
   if (!password) return jsonError("Missing password");
 
   const baseUrl = resolveBaseUrl();
-  if (!baseUrl) return jsonError("Missing API base URL", 500);
+  if (!baseUrl) {
+    const user = await findUserByEmail(email);
+    if (!user) return jsonError("Account not found", 404);
+    if (!verifyHash(password, user.passwordSalt, user.passwordHash)) {
+      return jsonError("Incorrect email or password", 401);
+    }
+    if (!user.emailVerifiedAt) {
+      return jsonError("Please verify your email before signing in", 403);
+    }
+
+    const roleId = user.roleId ?? 1;
+    const token = `mock-${randomId()}`;
+    return NextResponse.json(
+      { ok: true, token, userId: deriveUserId(user.id), roleId },
+      { headers: { "x-data-source": "mock" } }
+    );
+  }
 
   const formBody = new URLSearchParams({ email, password });
   const res = await fetch(`${baseUrl}/auth/login`, {

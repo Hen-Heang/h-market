@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "id": "b9e40fd7-b902-405e-b974-376639988638",
+      "email": "heng@gmail.com",
+      "passwordHash": "dbb4fd578298694cdbcf2c9070b64ec60770495d3fc94e98b6c7fbe4d79f66d738a09be897d1c14601ee46a3c6cac13652f2e6ad3c58de59c51419d976ce816c",
+      "passwordSalt": "27e72594ca194cfe83c9634962e560cf",
+      "roleId": 1,
+      "emailVerifiedAt": "2026-01-26T14:45:37.855Z",
+      "createdAt": "2026-01-26T14:45:37.855Z",
+      "updatedAt": "2026-01-26T14:45:37.855Z"
+    }
+  ]
+}
