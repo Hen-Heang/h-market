@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { getPartnerOverview, type PartnerOverview } from "@/services/partner";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const DEFAULT_OVERVIEW: PartnerOverview = {
   activity: [
@@ -53,6 +54,7 @@ function buildPath(values: number[], height = 140, width = 460) {
 
 export default function PartnerHomePage() {
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { data } = useQuery({
     queryKey: ["partner-overview"],
     queryFn: getPartnerOverview,
@@ -66,10 +68,14 @@ export default function PartnerHomePage() {
   const ordersPath = buildPath(chart.orders);
   const returnsPath = buildPath(chart.returns);
   const onLogout = () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user_id");
     localStorage.removeItem("auth_role_id");
-    router.push("/");
+    window.setTimeout(() => {
+      router.push("/");
+    }, 400);
   };
 
   return (
@@ -113,9 +119,17 @@ export default function PartnerHomePage() {
           <button
             type="button"
             onClick={onLogout}
-            className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300"
+            disabled={isLoggingOut}
+            className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Log out
+            {isLoggingOut ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-transparent" />
+                Logging out...
+              </span>
+            ) : (
+              "Log out"
+            )}
           </button>
         </div>
       </div>

@@ -4,16 +4,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, PackageSearch, ShieldCheck, Truck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "@/services/auth";
+import Toast from "@/components/ui/Toast";
 
 export default function LoginCard() {
   const [showPw, setShowPw] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
+  const redirectRef = useRef<number | null>(null);
   const router = useRouter();
   const params = useSearchParams();
   const registered = params.get("registered") === "1";
@@ -33,7 +36,10 @@ export default function LoginCard() {
 
       const target =
         data && "roleId" in data && data.roleId === 2 ? "/merchant" : "/partner";
-      router.push(target);
+      setToast({ message: "Signed in successfully.", variant: "success" });
+      redirectRef.current = window.setTimeout(() => {
+        router.push(target);
+      }, 700);
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : "Login failed";
@@ -47,6 +53,18 @@ export default function LoginCard() {
     loginMutation.mutate();
   };
 
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = window.setTimeout(() => setToast(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectRef.current) window.clearTimeout(redirectRef.current);
+    };
+  }, []);
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 14 }}
@@ -54,6 +72,7 @@ export default function LoginCard() {
       transition={{ duration: 0.45 }}
       className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5"
     >
+      <Toast open={Boolean(toast)} message={toast?.message ?? ""} variant={toast?.variant} />
       <div className="grid md:grid-cols-[1.05fr_0.95fr]">
         <div className="relative hidden min-h-[560px] overflow-hidden md:block">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,_rgba(16,185,129,0.18),_transparent_45%),_radial-gradient(circle_at_80%_20%,_rgba(14,165,233,0.18),_transparent_40%),_linear-gradient(160deg,_#ecfeff_0%,_#e0f2fe_45%,_#f8fafc_100%)]" />
@@ -205,7 +224,14 @@ export default function LoginCard() {
               disabled={loginMutation.isPending}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
-              {loginMutation.isPending ? "Signing in..." : "Sign in"}
+              {loginMutation.isPending ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </motion.button>
 
             <div className="my-3 flex items-center gap-3">

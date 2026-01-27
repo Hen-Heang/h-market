@@ -10,6 +10,7 @@ import {
   LineChart,
   Store,
   Truck,
+  User,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { label: "Orders", href: "/partner/orders", Icon: Truck },
   { label: "Report", href: "/partner/reports", Icon: BarChart3 },
   { label: "Order history", href: "/partner/order-history", Icon: LineChart },
+  { label: "Profile", href: "/partner/profile", Icon: User },
 ];
 
 export default function Sidebar() {

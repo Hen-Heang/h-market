@@ -4,16 +4,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, Mail, Lock, CheckCircle2, Handshake, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { register } from "@/services/auth";
+import Toast from "@/components/ui/Toast";
 
 export default function SignUpCard() {
   const [showPw, setShowPw] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
+  const redirectRef = useRef<number | null>(null);
   const router = useRouter();
   const params = useSearchParams();
   const initialRole = (params.get("role") ?? "").toUpperCase() === "PARTNER" ? "PARTNER" : "MERCHANT";
@@ -24,7 +27,10 @@ export default function SignUpCard() {
     mutationFn: async () => register({ email, password, roleId }),
     onSuccess: (data) => {
       const nextEmail = data.email;
-      router.push(`/auth/login?registered=1&email=${encodeURIComponent(nextEmail)}`);
+      setToast({ message: "Account created successfully.", variant: "success" });
+      redirectRef.current = window.setTimeout(() => {
+        router.push(`/auth/login?registered=1&email=${encodeURIComponent(nextEmail)}`);
+      }, 900);
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : "Signup failed";
@@ -38,6 +44,18 @@ export default function SignUpCard() {
     signupMutation.mutate();
   };
 
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = window.setTimeout(() => setToast(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectRef.current) window.clearTimeout(redirectRef.current);
+    };
+  }, []);
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 14 }}
@@ -45,6 +63,7 @@ export default function SignUpCard() {
       transition={{ duration: 0.45 }}
       className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5"
     >
+      <Toast open={Boolean(toast)} message={toast?.message ?? ""} variant={toast?.variant} />
       <div className="grid md:grid-cols-[0.95fr_1.05fr]">
         <div className="relative p-7 md:p-10">
           <div className="md:hidden">
@@ -145,7 +164,14 @@ export default function SignUpCard() {
               disabled={signupMutation.isPending}
               className="mt-2 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
-              {signupMutation.isPending ? "Signing up..." : "Create account"}
+              {signupMutation.isPending ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
+                  Signing up...
+                </span>
+              ) : (
+                "Create account"
+              )}
             </motion.button>
 
             <div className="my-3 flex items-center gap-3">
