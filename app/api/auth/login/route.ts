@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
+<<<<<<< HEAD
 import { buildAuthUrl, jsonError } from "../_utils";
+=======
+import { verifyHash, randomId } from "@/lib/auth/crypto";
+import { findUserByEmail } from "@/lib/auth/store";
+>>>>>>> 2dea26e7129f979815fc8f5e26a2f54da481e7e4
 
 export const runtime = "nodejs";
 
@@ -8,6 +13,25 @@ type LoginBody = {
   password?: string;
 };
 
+<<<<<<< HEAD
+=======
+function jsonError(message: string, status = 400) {
+  return NextResponse.json({ ok: false, message }, { status });
+}
+
+function resolveBaseUrl() {
+  return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+}
+
+function deriveUserId(raw: string) {
+  return (
+    raw
+      .split("")
+      .reduce((hash, ch) => (hash * 31 + ch.charCodeAt(0)) >>> 0, 7) % 100_000_000
+  );
+}
+
+>>>>>>> 2dea26e7129f979815fc8f5e26a2f54da481e7e4
 export async function POST(req: Request) {
   let body: LoginBody;
   try {
@@ -22,8 +46,29 @@ export async function POST(req: Request) {
   if (!email || !email.includes("@")) return jsonError("Please enter a valid email");
   if (!password) return jsonError("Missing password");
 
+<<<<<<< HEAD
   const url = buildAuthUrl("login");
   if (!url) return jsonError("Missing API base URL", 500);
+=======
+  const baseUrl = resolveBaseUrl();
+  if (!baseUrl) {
+    const user = await findUserByEmail(email);
+    if (!user) return jsonError("Account not found", 404);
+    if (!verifyHash(password, user.passwordSalt, user.passwordHash)) {
+      return jsonError("Incorrect email or password", 401);
+    }
+    if (!user.emailVerifiedAt) {
+      return jsonError("Please verify your email before signing in", 403);
+    }
+
+    const roleId = user.roleId ?? 1;
+    const token = `mock-${randomId()}`;
+    return NextResponse.json(
+      { ok: true, token, userId: deriveUserId(user.id), roleId },
+      { headers: { "x-data-source": "mock" } }
+    );
+  }
+>>>>>>> 2dea26e7129f979815fc8f5e26a2f54da481e7e4
 
   const res = await fetch(url, {
     method: "POST",
