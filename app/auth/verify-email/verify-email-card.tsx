@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, MailCheck } from "lucide-react";
 import OtpInput from "@/components/auth/OtpInput";
@@ -16,6 +16,16 @@ export default function VerifyEmailCard() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const redirectTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const onVerify = async () => {
     setError(null);
@@ -30,7 +40,13 @@ export default function VerifyEmailCard() {
     try {
       await verifyEmail({ email, code: otp });
       setInfo("Email verified. You can sign in now.");
-      window.setTimeout(() => router.push(`/auth/login?email=${encodeURIComponent(email)}`), 700);
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+      redirectTimeoutRef.current = window.setTimeout(() => {
+        router.push(`/auth/login?email=${encodeURIComponent(email)}`);
+      }, 700);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Verification failed";
       setError(message);

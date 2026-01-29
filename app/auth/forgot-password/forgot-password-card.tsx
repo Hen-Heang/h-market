@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, KeyRound, Mail, ShieldCheck, Eye, EyeOff } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OtpInput from "@/components/auth/OtpInput";
 import Toast from "@/components/ui/Toast";
@@ -28,6 +28,16 @@ export default function ForgotPasswordCard() {
   );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const redirectTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const sendCode = async () => {
     setError(null);
@@ -79,7 +89,13 @@ export default function ForgotPasswordCard() {
     try {
       await resetPassword({ email, code: otp, newPassword });
       setToast({ message: "Password updated. Please sign in.", variant: "success" });
-      window.setTimeout(() => router.push(`/auth/login?email=${encodeURIComponent(email)}`), 900);
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+      redirectTimeoutRef.current = window.setTimeout(() => {
+        router.push(`/auth/login?email=${encodeURIComponent(email)}`);
+      }, 900);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Reset failed";
       setError(message);

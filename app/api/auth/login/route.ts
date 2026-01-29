@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-<<<<<<< HEAD
-import { buildAuthUrl, jsonError } from "../_utils";
-=======
+import { buildAuthUrl, jsonError, resolveBaseUrl } from "../_utils";
 import { verifyHash, randomId } from "@/lib/auth/crypto";
 import { findUserByEmail } from "@/lib/auth/store";
->>>>>>> 2dea26e7129f979815fc8f5e26a2f54da481e7e4
 
 export const runtime = "nodejs";
 
@@ -12,16 +9,6 @@ type LoginBody = {
   email?: string;
   password?: string;
 };
-
-<<<<<<< HEAD
-=======
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, message }, { status });
-}
-
-function resolveBaseUrl() {
-  return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
-}
 
 function deriveUserId(raw: string) {
   return (
@@ -31,7 +18,6 @@ function deriveUserId(raw: string) {
   );
 }
 
->>>>>>> 2dea26e7129f979815fc8f5e26a2f54da481e7e4
 export async function POST(req: Request) {
   let body: LoginBody;
   try {
@@ -46,10 +32,6 @@ export async function POST(req: Request) {
   if (!email || !email.includes("@")) return jsonError("Please enter a valid email");
   if (!password) return jsonError("Missing password");
 
-<<<<<<< HEAD
-  const url = buildAuthUrl("login");
-  if (!url) return jsonError("Missing API base URL", 500);
-=======
   const baseUrl = resolveBaseUrl();
   if (!baseUrl) {
     const user = await findUserByEmail(email);
@@ -68,7 +50,9 @@ export async function POST(req: Request) {
       { headers: { "x-data-source": "mock" } }
     );
   }
->>>>>>> 2dea26e7129f979815fc8f5e26a2f54da481e7e4
+
+  const url = buildAuthUrl("login");
+  if (!url) return jsonError("Missing API base URL", 500);
 
   const res = await fetch(url, {
     method: "POST",
