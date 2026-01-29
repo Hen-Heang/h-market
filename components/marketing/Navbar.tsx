@@ -19,8 +19,10 @@ export default function Navbar() {
             <Image src="/brand/logo.svg" alt="Logo" width={44} height={44} />
           </div>
           <div className="leading-tight">
-            <div className="font-display text-base font-semibold text-slate-900">H Market</div>
-            <div className="text-xs uppercase tracking-[0.3em] text-slate-500">B2B Commerce</div>
+            <div className="font-display text-base font-semibold text-slate-950">H Market</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-600">
+              B2B Commerce
+            </div>
           </div>
         </Link>
 
@@ -29,7 +31,7 @@ export default function Navbar() {
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
             >
               {l.label}
             </a>
@@ -49,7 +51,7 @@ export default function Navbar() {
           <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
             <Link
               href="/auth/signup"
-              className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition hover:opacity-95"
+              className="rounded-full bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 transition hover:opacity-95"
             >
               Sign Up
             </Link>
@@ -81,7 +83,7 @@ export default function Navbar() {
                   <a
                     key={l.href}
                     href={l.href}
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     onClick={() => setOpen(false)}
                   >
                     {l.label}
@@ -99,7 +101,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                  className="rounded-lg bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
                   onClick={() => setOpen(false)}
                 >
                   Sign Up

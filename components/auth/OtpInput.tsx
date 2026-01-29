@@ -81,7 +81,7 @@ export default function OtpInput({
             if (e.key === "ArrowRight" && idx < length - 1) inputsRef.current[idx + 1]?.focus();
           }}
           className="h-14 w-14 rounded-lg border border-zinc-200 text-center text-xl font-semibold text-zinc-800 shadow-sm outline-none transition
-                     focus:border-cyan-400 focus:ring-4 focus:ring-cyan-200/50
+                     focus:border-emerald-400 focus:ring-4 focus:ring-emerald-200/50
                      hover:border-zinc-300"
         />
       ))}

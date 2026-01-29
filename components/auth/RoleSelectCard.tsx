@@ -73,7 +73,7 @@ export default function RoleSelectCard() {
                 className={[
                   "flex h-12 w-12 items-center justify-center rounded-xl",
                   active
-                    ? "bg-gradient-to-r from-cyan-600/15 to-blue-600/15 text-cyan-700"
+                    ? "bg-linear-to-r from-cyan-600/15 to-blue-600/15 text-cyan-700"
                     : "bg-zinc-100 text-zinc-500",
                 ].join(" ")}
               >
@@ -99,7 +99,7 @@ export default function RoleSelectCard() {
         >
           <Link
             href={`/auth/signup?role=${role}`}
-            className="block rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95"
+            className="block rounded-lg bg-linear-to-r from-cyan-600 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-md shadow-cyan-600/20 transition hover:opacity-95"
           >
             Continue
           </Link>

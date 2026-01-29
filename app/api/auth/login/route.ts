@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildAuthUrl, jsonError } from "../_utils";
 
 export const runtime = "nodejs";
 
@@ -6,14 +7,6 @@ type LoginBody = {
   email?: string;
   password?: string;
 };
-
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, message }, { status });
-}
-
-function resolveBaseUrl() {
-  return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
-}
 
 export async function POST(req: Request) {
   let body: LoginBody;
@@ -29,14 +22,13 @@ export async function POST(req: Request) {
   if (!email || !email.includes("@")) return jsonError("Please enter a valid email");
   if (!password) return jsonError("Missing password");
 
-  const baseUrl = resolveBaseUrl();
-  if (!baseUrl) return jsonError("Missing API base URL", 500);
+  const url = buildAuthUrl("login");
+  if (!url) return jsonError("Missing API base URL", 500);
 
-  const formBody = new URLSearchParams({ email, password });
-  const res = await fetch(`${baseUrl}/auth/login`, {
+  const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: formBody.toString(),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
 
   const payload = (await res.json().catch(() => null)) as

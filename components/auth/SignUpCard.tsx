@@ -7,7 +7,7 @@ import { ArrowLeft, Eye, EyeOff, Mail, Lock, CheckCircle2, Handshake, ShoppingCa
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
-import { register } from "@/services/auth";
+import { generateCode, register } from "@/services/auth";
 import Toast from "@/components/ui/Toast";
 
 export default function SignUpCard() {
@@ -25,11 +25,16 @@ export default function SignUpCard() {
 
   const signupMutation = useMutation({
     mutationFn: async () => register({ email, password, roleId }),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const nextEmail = data.email;
-      setToast({ message: "Account created successfully.", variant: "success" });
+      setToast({ message: "Account created. Verify your email.", variant: "success" });
+      try {
+        await generateCode({ email: nextEmail });
+      } catch {
+        // Ignore resend failures and allow manual resend on verify page.
+      }
       redirectRef.current = window.setTimeout(() => {
-        router.push(`/auth/login?registered=1&email=${encodeURIComponent(nextEmail)}`);
+        router.push(`/auth/verify-email?email=${encodeURIComponent(nextEmail)}`);
       }, 900);
     },
     onError: (err) => {
@@ -162,7 +167,7 @@ export default function SignUpCard() {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={signupMutation.isPending}
-              className="mt-2 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
+              className="mt-2 w-full rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
               {signupMutation.isPending ? (
                 <span className="inline-flex items-center justify-center gap-2">
@@ -193,8 +198,8 @@ export default function SignUpCard() {
           </form>
         </div>
 
-        <div className="relative hidden min-h-[560px] overflow-hidden md:block">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,_rgba(16,185,129,0.2),_transparent_45%),_radial-gradient(circle_at_85%_10%,_rgba(249,115,22,0.22),_transparent_40%),_linear-gradient(160deg,_#ffffff_0%,_#f1f5f9_40%,_#ecfeff_100%)]" />
+        <div className="relative hidden min-h-140 overflow-hidden md:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(16,185,129,0.2),transparent_45%),radial-gradient(circle_at_85%_10%,rgba(249,115,22,0.22),transparent_40%),linear-gradient(160deg,#ffffff_0%,#f1f5f9_40%,#ecfeff_100%)]" />
           <div className="absolute inset-0 opacity-40">
             <Image src="/auth/signup-bg.svg" alt="Background" fill className="object-cover" priority />
           </div>
@@ -312,7 +317,7 @@ function SocialBtn({ label, icon }: { label: string; icon: "google" }) {
       className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
       aria-label={label}
     >
-      <Image src="/icons/google.svg" alt="Google" width={16} height={16} />
+      <Image src={`/icons/${icon}.svg`} alt={label} width={16} height={16} />
     </motion.button>
   );
 }

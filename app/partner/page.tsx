@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getPartnerOverview, type PartnerOverview } from "@/services/partner";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Skeleton from "@/components/ui/Skeleton";
 
 const DEFAULT_OVERVIEW: PartnerOverview = {
   activity: [
@@ -55,10 +56,11 @@ function buildPath(values: number[], height = 140, width = 460) {
 export default function PartnerHomePage() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { data } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["partner-overview"],
     queryFn: getPartnerOverview,
   });
+  const isLoadingData = isLoading || isFetching;
   const overview = data ?? DEFAULT_OVERVIEW;
   const activity = overview.activity ?? DEFAULT_OVERVIEW.activity;
   const kpis = overview.kpis ?? DEFAULT_OVERVIEW.kpis;
@@ -151,21 +153,32 @@ export default function PartnerHomePage() {
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {activity.map(({ label, value }) => {
-            const Icon = ACTIVITY_ICONS[label as keyof typeof ACTIVITY_ICONS];
-            return (
-              <div
-                key={label}
-                className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center"
-              >
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                  {Icon ? <Icon className="h-5 w-5" /> : null}
+          {isLoadingData
+            ? Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={`activity-skeleton-${idx}`}
+                  className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4"
+                >
+                  <Skeleton className="mx-auto h-10 w-10 rounded-full" />
+                  <Skeleton className="mx-auto mt-3 h-5 w-12" />
+                  <Skeleton className="mx-auto mt-2 h-3 w-20" />
                 </div>
-                <div className="mt-3 text-lg font-semibold text-slate-900">{value}</div>
-                <div className="text-xs text-slate-500">{label}</div>
-              </div>
-            );
-          })}
+              ))
+            : activity.map(({ label, value }) => {
+                const Icon = ACTIVITY_ICONS[label as keyof typeof ACTIVITY_ICONS];
+                return (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center"
+                  >
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      {Icon ? <Icon className="h-5 w-5" /> : null}
+                    </div>
+                    <div className="mt-3 text-lg font-semibold text-slate-900">{value}</div>
+                    <div className="text-xs text-slate-500">{label}</div>
+                  </div>
+                );
+              })}
         </div>
       </div>
 
@@ -192,34 +205,49 @@ export default function PartnerHomePage() {
               <span>{chart.labels[chart.labels.length - 1]}</span>
             </div>
             <div className="mt-4 h-48 w-full">
-              <svg viewBox="0 0 460 140" className="h-full w-full">
-                <path d={ordersPath} fill="none" stroke="#10b981" strokeWidth="3" />
-                <path d={returnsPath} fill="none" stroke="#fb7185" strokeWidth="3" />
-              </svg>
+              {isLoadingData ? (
+                <Skeleton className="h-full w-full rounded-2xl" />
+              ) : (
+                <svg viewBox="0 0 460 140" className="h-full w-full">
+                  <path d={ordersPath} fill="none" stroke="#10b981" strokeWidth="3" />
+                  <path d={returnsPath} fill="none" stroke="#fb7185" strokeWidth="3" />
+                </svg>
+              )}
             </div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {kpis.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-slate-100 bg-white p-4"
-              >
-                <div className="text-xs text-slate-500">{item.label}</div>
-                <div className="mt-2 text-xl font-semibold text-slate-900">
-                  {item.value}
-                </div>
-                <div
-                  className={[
-                    "mt-1 text-xs font-semibold",
-                    item.delta < 0 ? "text-rose-500" : "text-emerald-600",
-                  ].join(" ")}
-                >
-                  {item.delta > 0 ? "+" : ""}
-                  {item.delta.toFixed(2)}% from last month
-                </div>
-              </div>
-            ))}
+            {isLoadingData
+              ? Array.from({ length: 3 }).map((_, idx) => (
+                  <div
+                    key={`kpi-skeleton-${idx}`}
+                    className="rounded-2xl border border-slate-100 bg-white p-4"
+                  >
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="mt-3 h-6 w-16" />
+                    <Skeleton className="mt-2 h-3 w-28" />
+                  </div>
+                ))
+              : kpis.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-slate-100 bg-white p-4"
+                  >
+                    <div className="text-xs text-slate-500">{item.label}</div>
+                    <div className="mt-2 text-xl font-semibold text-slate-900">
+                      {item.value}
+                    </div>
+                    <div
+                      className={[
+                        "mt-1 text-xs font-semibold",
+                        item.delta < 0 ? "text-rose-500" : "text-emerald-600",
+                      ].join(" ")}
+                    >
+                      {item.delta > 0 ? "+" : ""}
+                      {item.delta.toFixed(2)}% from last month
+                    </div>
+                  </div>
+                ))}
           </div>
         </div>
 
@@ -247,15 +275,25 @@ export default function PartnerHomePage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="text-sm font-semibold text-slate-900">Top merchants</div>
             <div className="mt-4 space-y-3">
-              {topMerchants.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2 text-xs"
-                >
-                  <span className="font-semibold text-slate-700">{item.name}</span>
-                  <span className="text-slate-500">{item.spend}</span>
-                </div>
-              ))}
+              {isLoadingData
+                ? Array.from({ length: 3 }).map((_, idx) => (
+                    <div
+                      key={`merchant-skeleton-${idx}`}
+                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2"
+                    >
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-3 w-12" />
+                    </div>
+                  ))
+                : topMerchants.map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold text-slate-700">{item.name}</span>
+                      <span className="text-slate-500">{item.spend}</span>
+                    </div>
+                  ))}
             </div>
           </div>
         </div>

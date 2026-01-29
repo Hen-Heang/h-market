@@ -10,11 +10,11 @@ export default function HowItWorks() {
       <div className="grid items-center gap-10 md:grid-cols-2">
         <div className="relative rounded-3xl border border-slate-100 bg-white p-8 shadow-lg shadow-emerald-500/10">
           <div className="text-xs uppercase tracking-[0.3em] text-emerald-600">Workflow</div>
-          <h2 className="font-display mt-3 text-3xl text-slate-900 md:text-4xl">
+          <h2 className="font-display mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">
             From signup to first order in a{" "}
             <span className="font-semibold text-emerald-700">single flow</span>.
           </h2>
-          <p className="mt-3 text-sm text-slate-600 md:text-base">
+          <p className="mt-3 text-sm font-medium text-slate-700 md:text-base">
             Clear steps, role-based access, and shared visibility keep every partner aligned.
           </p>
 
@@ -33,7 +33,7 @@ export default function HowItWorks() {
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900">{s.title}</div>
-                  <p className="mt-1 text-sm text-slate-600">{s.desc}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{s.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -41,7 +41,7 @@ export default function HowItWorks() {
         </div>
 
         <div className="relative mx-auto aspect-square w-[260px] md:w-[360px]">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-200/40 via-white to-orange-200/40 blur-2xl" />
+          <div className="absolute inset-0 rounded-full bg-linear-to-br from-emerald-200/40 via-white to-orange-200/40 blur-2xl" />
           <Image src="/marketing/how.svg" alt="How it works" fill className="object-contain" />
         </div>
       </div>

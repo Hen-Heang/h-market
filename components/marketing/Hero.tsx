@@ -2,15 +2,17 @@
 
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
+import type { Variants } from "framer-motion";
 
 export default function Hero() {
   const reducedMotion = useReducedMotion();
   const stagger = reducedMotion ? {} : { staggerChildren: 0.12, delayChildren: 0.05 };
-  const fadeUp = reducedMotion
+  const easeOut = [0.22, 1, 0.36, 1] as const;
+  const fadeUp: Variants = reducedMotion
     ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.2 } } }
     : {
         hidden: { opacity: 0, y: 16 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+        show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
       };
 
   return (
@@ -79,10 +81,10 @@ export default function Hero() {
 
           <motion.h1
             variants={fadeUp}
-            className="font-display text-4xl leading-tight text-slate-900 md:text-6xl"
+            className="font-display text-4xl font-semibold leading-tight text-slate-950 md:text-6xl"
           >
             Launch a{" "}
-            <span className="bg-gradient-to-r from-amber-600 via-orange-500 to-rose-500 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-amber-600 via-orange-500 to-rose-500 bg-clip-text text-transparent">
               Merchant
             </span>{" "}
             experience that feels premium and is easy to run.
@@ -90,7 +92,7 @@ export default function Hero() {
 
           <motion.p
             variants={fadeUp}
-            className="max-w-xl text-sm leading-6 text-slate-600 md:text-base"
+            className="max-w-xl text-sm font-medium leading-6 text-slate-700 md:text-base"
           >
             Separate, clear experiences for{" "}
             <span className="font-semibold text-slate-900">Merchants</span> and{" "}
@@ -103,7 +105,7 @@ export default function Hero() {
               whileHover={reducedMotion ? undefined : { y: -2 }}
               whileTap={{ scale: 0.98 }}
               href="/auth/signup"
-              className="rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25"
+              className="rounded-full bg-linear-to-r from-amber-500 via-orange-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25"
             >
               Start as Merchant
             </motion.a>
@@ -117,7 +119,7 @@ export default function Hero() {
             </motion.a>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="grid gap-3 pt-2 text-xs text-slate-500 sm:grid-cols-3">
+          <motion.div variants={fadeUp} className="grid gap-3 pt-2 text-xs text-slate-600 sm:grid-cols-3">
             <div className="rounded-2xl border border-amber-100 bg-white px-4 py-3 shadow-sm">
               <div className="text-sm font-semibold text-slate-900">4 min</div>
               <div>merchant setup</div>
@@ -176,7 +178,7 @@ export default function Hero() {
 
                 <div className="space-y-3">
                   {[
-                    { label: "Today’s orders", value: "86" },
+                    { label: "Today's orders", value: "86" },
                     { label: "Payout due", value: "$18.4k" },
                     { label: "Top partner", value: "NorthBay Co." },
                   ].map((item) => (

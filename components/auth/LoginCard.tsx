@@ -12,14 +12,16 @@ import Toast from "@/components/ui/Toast";
 
 export default function LoginCard() {
   const [showPw, setShowPw] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
-  const redirectRef = useRef<number | null>(null);
   const router = useRouter();
   const params = useSearchParams();
   const registered = params.get("registered") === "1";
+  const initialEmail = (params.get("email") ?? "").trim();
+  const [email, setEmail] = useState(() => initialEmail);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
+  const redirectRef = useRef<number | null>(null);
 
   const loginMutation = useMutation({
     mutationFn: async () => login({ email, password }),
@@ -44,12 +46,14 @@ export default function LoginCard() {
     onError: (err) => {
       const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
+      setNeedsVerify(message.toLowerCase().includes("not verified"));
     },
   });
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNeedsVerify(false);
     loginMutation.mutate();
   };
 
@@ -74,8 +78,8 @@ export default function LoginCard() {
     >
       <Toast open={Boolean(toast)} message={toast?.message ?? ""} variant={toast?.variant} />
       <div className="grid md:grid-cols-[1.05fr_0.95fr]">
-        <div className="relative hidden min-h-[560px] overflow-hidden md:block">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,_rgba(16,185,129,0.18),_transparent_45%),_radial-gradient(circle_at_80%_20%,_rgba(14,165,233,0.18),_transparent_40%),_linear-gradient(160deg,_#ecfeff_0%,_#e0f2fe_45%,_#f8fafc_100%)]" />
+        <div className="relative hidden min-h-140 overflow-hidden md:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(16,185,129,0.18),transparent_45%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.18),transparent_40%),linear-gradient(160deg,#ecfeff_0%,#e0f2fe_45%,#f8fafc_100%)]" />
           <div className="absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-200/50 blur-3xl" />
           <div className="absolute inset-0 opacity-15">
             <Image src="/auth/login-bg.svg" alt="Login background" fill className="object-cover" priority />
@@ -200,7 +204,10 @@ export default function LoginCard() {
                 <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
                 Remember me
               </label>
-              <Link href="/auth/forgot-password" className="font-medium text-emerald-700 hover:underline">
+              <Link
+                href={email ? `/auth/forgot-password?email=${encodeURIComponent(email)}` : "/auth/forgot-password"}
+                className="font-medium text-emerald-700 hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
@@ -217,12 +224,25 @@ export default function LoginCard() {
               </div>
             )}
 
+            {needsVerify && email && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Your email is not verified yet.{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)}
+                  className="font-semibold text-amber-700 hover:underline"
+                >
+                  Verify now
+                </button>
+              </div>
+            )}
+
             <motion.button
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loginMutation.isPending}
-              className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
+              className="w-full rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
               {loginMutation.isPending ? (
                 <span className="inline-flex items-center justify-center gap-2">
@@ -307,7 +327,7 @@ function SocialWideBtn({ label, icon }: { label: string; icon: "google" }) {
       className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
     >
       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100">
-        <Image src="/icons/google.svg" alt="Google" width={16} height={16} />
+        <Image src={`/icons/${icon}.svg`} alt={label} width={16} height={16} />
       </span>
       {label}
     </motion.button>
