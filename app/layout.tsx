@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Sora } from "next/font/google";
 import QueryProvider from "@/components/providers/QueryProvider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const sora = Sora({
@@ -26,7 +27,25 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${sora.variable} ${fraunces.variable} antialiased font-sans`}>
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          {children}
+          <Toaster
+            position="top-right"
+            expand={false}
+            closeButton
+            duration={2600}
+            toastOptions={{
+              className: "sonner-toast",
+              classNames: {
+                title: "sonner-title",
+                description: "sonner-description",
+                actionButton: "sonner-action",
+                cancelButton: "sonner-cancel",
+                closeButton: "sonner-close",
+              },
+            }}
+          />
+        </QueryProvider>
       </body>
     </html>
   );

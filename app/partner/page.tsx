@@ -2,8 +2,9 @@
 
 import { Bell, ChevronDown, ClipboardList, PackageCheck, Search, Truck, Users, Boxes } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { getPartnerOverview, type PartnerOverview } from "@/services/partner";
+import { getPartnerOverview, getPartnerProfile, getPartnerStore, type PartnerOverview } from "@/services/partner";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Skeleton from "@/components/ui/Skeleton";
@@ -79,15 +80,39 @@ export default function PartnerHomePage() {
       router.push("/");
     }, 400);
   };
+// Render data of profile 
+const { data: profile } = useQuery({
+  queryKey: ["partner-profile"],
+  queryFn: getPartnerProfile,
+});
+// get partner name from profile data
+const displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : "Partner";
+
+const {data: store} = useQuery({
+    queryKey: ["partner-store"],
+    queryFn: getPartnerStore,
+  });
+// Render data of store
+const rawStoreImage = (store?.bannerImage ?? "").trim();
+const storeImage =
+  rawStoreImage && (rawStoreImage.startsWith("/") || /^https?:\/\//i.test(rawStoreImage))
+    ? rawStoreImage
+    : "/brand/logo.svg";
+const storeName = store?.name || "Your Store";
 
   return (
-    <div>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl" />
+        <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
+        <div className="absolute left-1/2 top-96 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-200/30 blur-[110px]" />
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Welcome back, Blurz
+          <h1 className="text-3xl font-semibold text-slate-950">
+            Welcome back, {displayName}!
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm font-medium text-slate-600">
             Here&apos;s what&apos;s happening with your store today.
           </p>
         </div>
@@ -98,31 +123,31 @@ export default function PartnerHomePage() {
             <input
               type="search"
               placeholder="Search inventory..."
-              className="w-56 rounded-full border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-600 shadow-sm outline-none focus:border-emerald-400"
+              className="w-56 rounded-full border border-slate-200 bg-white/80 py-2 pl-9 pr-4 text-sm text-slate-600 shadow-sm outline-none backdrop-blur focus:border-emerald-400"
             />
           </div>
           <button
             type="button"
-            className="relative rounded-full border border-slate-200 bg-white p-2 text-slate-600 shadow-sm hover:border-slate-300"
+            className="relative rounded-full border border-slate-200 bg-white/80 p-2 text-slate-600 shadow-sm backdrop-blur hover:border-slate-300"
           >
             <Bell className="h-4 w-4" />
             <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-500" />
           </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm"
+          <Link
+            href="/partner/profile#store"
+            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:border-emerald-200 hover:bg-emerald-50/60"
           >
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-slate-100">
-              <Image src="/brand/logo.svg" alt="Avatar" fill className="object-contain p-2" />
+              <Image src={storeImage} alt="Avatar" fill className="object-contain p-2" />
             </div>
-            Blurz Store
+            {storeName}
             <ChevronDown className="h-4 w-4 text-slate-400" />
-          </button>
+          </Link>
           <button
             type="button"
             onClick={onLogout}
             disabled={isLoggingOut}
-            className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
+            className="rounded-full border border-slate-200 bg-white/80 px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isLoggingOut ? (
               <span className="inline-flex items-center gap-2">
@@ -136,11 +161,11 @@ export default function PartnerHomePage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mt-6 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-emerald-700">Order activity</h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs font-medium text-slate-500">
               Keep an eye on every stage of fulfillment.
             </p>
           </div>
@@ -157,8 +182,8 @@ export default function PartnerHomePage() {
             ? Array.from({ length: 5 }).map((_, idx) => (
                 <div
                   key={`activity-skeleton-${idx}`}
-                  className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4"
-                >
+                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                  >
                   <Skeleton className="mx-auto h-10 w-10 rounded-full" />
                   <Skeleton className="mx-auto mt-3 h-5 w-12" />
                   <Skeleton className="mx-auto mt-2 h-3 w-20" />
@@ -169,7 +194,7 @@ export default function PartnerHomePage() {
                 return (
                   <div
                     key={label}
-                    className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center"
+                    className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm"
                   >
                     <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                       {Icon ? <Icon className="h-5 w-5" /> : null}
@@ -183,7 +208,7 @@ export default function PartnerHomePage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Store statistic</h2>
@@ -199,7 +224,7 @@ export default function PartnerHomePage() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+          <div className="mt-6 rounded-2xl bg-slate-50/80 p-4">
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>{chart.labels[0]}</span>
               <span>{chart.labels[chart.labels.length - 1]}</span>
@@ -221,7 +246,7 @@ export default function PartnerHomePage() {
               ? Array.from({ length: 3 }).map((_, idx) => (
                   <div
                     key={`kpi-skeleton-${idx}`}
-                    className="rounded-2xl border border-slate-100 bg-white p-4"
+                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
                   >
                     <Skeleton className="h-3 w-24" />
                     <Skeleton className="mt-3 h-6 w-16" />
@@ -231,7 +256,7 @@ export default function PartnerHomePage() {
               : kpis.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-2xl border border-slate-100 bg-white p-4"
+                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
                   >
                     <div className="text-xs text-slate-500">{item.label}</div>
                     <div className="mt-2 text-xl font-semibold text-slate-900">
@@ -252,7 +277,7 @@ export default function PartnerHomePage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
             <div className="text-sm font-semibold text-slate-900">Quick actions</div>
             <div className="mt-4 grid gap-3">
               {[
@@ -272,7 +297,7 @@ export default function PartnerHomePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
             <div className="text-sm font-semibold text-slate-900">Top merchants</div>
             <div className="mt-4 space-y-3">
               {isLoadingData

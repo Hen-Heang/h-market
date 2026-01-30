@@ -6,7 +6,7 @@ import { ArrowLeft, KeyRound, Mail, ShieldCheck, Eye, EyeOff } from "lucide-reac
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import OtpInput from "@/components/auth/OtpInput";
-import Toast from "@/components/ui/Toast";
+import { toast } from "sonner";
 import { generateCode, resetPassword } from "@/services/auth";
 
 type Step = "request" | "reset";
@@ -23,9 +23,6 @@ export default function ForgotPasswordCard() {
   const [step, setStep] = useState<Step>("request");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(
-    null
-  );
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const redirectTimeoutRef = useRef<number | null>(null);
@@ -88,7 +85,7 @@ export default function ForgotPasswordCard() {
     setLoading(true);
     try {
       await resetPassword({ email, code: otp, newPassword });
-      setToast({ message: "Password updated. Please sign in.", variant: "success" });
+      toast.success("Password updated. Please sign in.");
       if (redirectTimeoutRef.current !== null) {
         window.clearTimeout(redirectTimeoutRef.current);
         redirectTimeoutRef.current = null;
@@ -111,7 +108,6 @@ export default function ForgotPasswordCard() {
       transition={{ duration: 0.45 }}
       className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5"
     >
-      <Toast open={Boolean(toast)} message={toast?.message ?? ""} variant={toast?.variant} />
       <div className="grid md:grid-cols-[1.05fr_0.95fr]">
         <div className="relative hidden min-h-140 overflow-hidden md:block">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(16,185,129,0.18),transparent_45%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.18),transparent_40%),linear-gradient(160deg,#f8fafc_0%,#ffffff_45%,#ecfeff_100%)]" />

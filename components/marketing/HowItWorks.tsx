@@ -6,13 +6,20 @@ import { motion } from "framer-motion";
 
 export default function HowItWorks() {
   return (
-    <section id="how" className="mx-auto max-w-6xl px-6 pb-16 pt-6 md:pb-24">
+    <section id="how" className="relative mx-auto max-w-6xl px-6 pb-16 pt-6 md:pb-24">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -left-16 top-10 h-64 w-64 rounded-full bg-emerald-200/25 blur-3xl" />
+        <div className="absolute right-0 top-24 h-72 w-72 rounded-full bg-cyan-200/20 blur-3xl" />
+      </div>
       <div className="grid items-center gap-10 md:grid-cols-2">
-        <div className="relative rounded-3xl border border-slate-100 bg-white p-8 shadow-lg shadow-emerald-500/10">
+        <div className="relative rounded-3xl border border-slate-100 bg-white/90 p-8 shadow-lg shadow-emerald-500/10 backdrop-blur">
           <div className="text-xs uppercase tracking-[0.3em] text-emerald-600">Workflow</div>
           <h2 className="font-display mt-3 text-3xl font-semibold text-slate-950 md:text-4xl">
             From signup to first order in a{" "}
-            <span className="font-semibold text-emerald-700">single flow</span>.
+            <span className="bg-linear-to-r from-emerald-600 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
+              single flow
+            </span>
+            .
           </h2>
           <p className="mt-3 text-sm font-medium text-slate-700 md:text-base">
             Clear steps, role-based access, and shared visibility keep every partner aligned.
@@ -41,7 +48,7 @@ export default function HowItWorks() {
         </div>
 
         <div className="relative mx-auto aspect-square w-[260px] md:w-[360px]">
-          <div className="absolute inset-0 rounded-full bg-linear-to-br from-emerald-200/40 via-white to-orange-200/40 blur-2xl" />
+          <div className="absolute inset-0 rounded-full bg-linear-to-br from-emerald-200/40 via-white to-cyan-200/40 blur-2xl" />
           <Image src="/marketing/how.svg" alt="How it works" fill className="object-contain" />
         </div>
       </div>

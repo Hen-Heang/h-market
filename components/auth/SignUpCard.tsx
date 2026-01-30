@@ -8,14 +8,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { generateCode, register } from "@/services/auth";
-import Toast from "@/components/ui/Toast";
+import { toast } from "sonner";
 
 export default function SignUpCard() {
   const [showPw, setShowPw] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
   const redirectRef = useRef<number | null>(null);
   const router = useRouter();
   const params = useSearchParams();
@@ -27,7 +26,7 @@ export default function SignUpCard() {
     mutationFn: async () => register({ email, password, roleId }),
     onSuccess: async (data) => {
       const nextEmail = data.email;
-      setToast({ message: "Account created. Verify your email.", variant: "success" });
+      toast.success("Account created. Verify your email.");
       try {
         await generateCode({ email: nextEmail });
       } catch {
@@ -50,12 +49,6 @@ export default function SignUpCard() {
   };
 
   useEffect(() => {
-    if (!toast) return undefined;
-    const timer = window.setTimeout(() => setToast(null), 2200);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
-  useEffect(() => {
     return () => {
       if (redirectRef.current) window.clearTimeout(redirectRef.current);
     };
@@ -66,9 +59,9 @@ export default function SignUpCard() {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5"
+      className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white/90 shadow-xl ring-1 ring-black/5 backdrop-blur"
     >
-      <Toast open={Boolean(toast)} message={toast?.message ?? ""} variant={toast?.variant} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400" />
       <div className="grid md:grid-cols-[0.95fr_1.05fr]">
         <div className="relative p-7 md:p-10">
           <div className="md:hidden">
@@ -83,7 +76,7 @@ export default function SignUpCard() {
 
           <div className="pt-8 text-center md:pt-2">
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-600">Create Workspace</p>
-            <h1 className="mt-3 text-2xl font-semibold text-slate-900 md:text-3xl">
+            <h1 className="mt-3 text-2xl font-semibold text-slate-950 md:text-3xl">
               Start selling and sourcing smarter
             </h1>
             <p className="mt-2 text-xs text-slate-500">
@@ -167,7 +160,7 @@ export default function SignUpCard() {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={signupMutation.isPending}
-              className="mt-2 w-full rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
+              className="mt-2 w-full rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
               {signupMutation.isPending ? (
                 <span className="inline-flex items-center justify-center gap-2">
@@ -199,7 +192,7 @@ export default function SignUpCard() {
         </div>
 
         <div className="relative hidden min-h-140 overflow-hidden md:block">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(16,185,129,0.2),transparent_45%),radial-gradient(circle_at_85%_10%,rgba(249,115,22,0.22),transparent_40%),linear-gradient(160deg,#ffffff_0%,#f1f5f9_40%,#ecfeff_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(16,185,129,0.22),transparent_45%),radial-gradient(circle_at_85%_10%,rgba(249,115,22,0.24),transparent_40%),linear-gradient(160deg,#ffffff_0%,#f1f5f9_40%,#ecfeff_100%)]" />
           <div className="absolute inset-0 opacity-40">
             <Image src="/auth/signup-bg.svg" alt="Background" fill className="object-cover" priority />
           </div>

@@ -73,10 +73,38 @@ export async function POST(req: Request) {
     return jsonError(message, res.status);
   }
 
+  type LoginPayload =
+    | {
+        data?: {
+          token?: string;
+          accessToken?: string;
+          userId?: number;
+          roleId?: number;
+          user?: { id?: number; roleId?: number };
+        };
+        message?: string;
+        status?: { message?: string };
+        token?: string;
+        accessToken?: string;
+        userId?: number;
+        roleId?: number;
+      }
+    | null;
+
+  const typedPayload = payload as LoginPayload;
+  const data = typedPayload?.data ?? {};
+  const token =
+    data.token ||
+    data.accessToken ||
+    typedPayload?.token ||
+    typedPayload?.accessToken;
+  const userId = data.userId || typedPayload?.userId || data.user?.id;
+  const roleId = data.roleId || typedPayload?.roleId || data.user?.roleId;
+
   return NextResponse.json({
     ok: true,
-    token: payload?.data?.token,
-    userId: payload?.data?.userId,
-    roleId: payload?.data?.roleId,
+    token,
+    userId,
+    roleId,
   });
 }

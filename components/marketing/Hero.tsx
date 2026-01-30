@@ -19,7 +19,7 @@ export default function Hero() {
     <section id="home" className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <motion.div
-          className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl"
+          className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-emerald-400/25 blur-3xl"
           animate={
             reducedMotion
               ? undefined
@@ -37,7 +37,7 @@ export default function Hero() {
           }
         />
         <motion.div
-          className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-orange-400/20 blur-3xl"
+          className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl"
           animate={
             reducedMotion
               ? undefined
@@ -73,8 +73,8 @@ export default function Hero() {
           className="space-y-6"
         >
           <motion.div variants={fadeUp}>
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700 shadow-sm backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Merchant-first commerce network
             </div>
           </motion.div>
@@ -84,7 +84,7 @@ export default function Hero() {
             className="font-display text-4xl font-semibold leading-tight text-slate-950 md:text-6xl"
           >
             Launch a{" "}
-            <span className="bg-linear-to-r from-amber-600 via-orange-500 to-rose-500 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-emerald-600 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
               Merchant
             </span>{" "}
             experience that feels premium and is easy to run.
@@ -105,7 +105,7 @@ export default function Hero() {
               whileHover={reducedMotion ? undefined : { y: -2 }}
               whileTap={{ scale: 0.98 }}
               href="/auth/signup"
-              className="rounded-full bg-linear-to-r from-amber-500 via-orange-500 to-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25"
+              className="rounded-full bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25"
             >
               Start as Merchant
             </motion.a>
@@ -113,22 +113,22 @@ export default function Hero() {
               whileHover={reducedMotion ? undefined : { y: -2 }}
               whileTap={{ scale: 0.98 }}
               href="#features"
-              className="rounded-full border border-emerald-200 bg-white px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm hover:border-emerald-300"
+              className="rounded-full border border-emerald-200 bg-white/80 px-5 py-2.5 text-sm font-semibold text-emerald-700 shadow-sm backdrop-blur hover:border-emerald-300"
             >
               Explore Partner View
             </motion.a>
           </motion.div>
 
           <motion.div variants={fadeUp} className="grid gap-3 pt-2 text-xs text-slate-600 sm:grid-cols-3">
-            <div className="rounded-2xl border border-amber-100 bg-white px-4 py-3 shadow-sm">
+            <div className="rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-sm font-semibold text-slate-900">4 min</div>
               <div>merchant setup</div>
             </div>
-            <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+            <div className="rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-sm font-semibold text-slate-900">99%</div>
               <div>partner verified</div>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+            <div className="rounded-2xl border border-slate-100 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-sm font-semibold text-slate-900">1 view</div>
               <div>orders + payouts</div>
             </div>
@@ -143,7 +143,7 @@ export default function Hero() {
           <div className="relative">
             <motion.div
               variants={fadeUp}
-              className="rounded-3xl border border-amber-100 bg-white p-5 shadow-lg shadow-amber-500/10"
+              className="rounded-3xl border border-emerald-100 bg-white/90 p-5 shadow-lg shadow-emerald-500/10 backdrop-blur"
               animate={reducedMotion ? undefined : { y: [0, -8, 0] }}
               transition={
                 reducedMotion
@@ -153,20 +153,20 @@ export default function Hero() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.3em] text-amber-600">
+                  <div className="text-xs uppercase tracking-[0.3em] text-emerald-600">
                     Merchant Console
                   </div>
                   <div className="mt-1 text-lg font-semibold text-slate-900">
                     Revenue & Orders
                   </div>
                 </div>
-                <div className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                   +24% sell-through
                 </div>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-[1.2fr_1fr]">
-                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-amber-50">
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-emerald-50/60">
                   <Image
                     src="/marketing/hero.svg"
                     alt="H-Market merchant view"
@@ -196,7 +196,7 @@ export default function Hero() {
 
             <motion.div
               variants={fadeUp}
-              className="absolute -left-6 -bottom-6 hidden w-[220px] rounded-2xl border border-emerald-100 bg-white p-4 text-sm text-slate-600 shadow-lg shadow-emerald-500/10 md:block"
+              className="absolute -left-6 -bottom-6 hidden w-[220px] rounded-2xl border border-emerald-100 bg-white/90 p-4 text-sm text-slate-600 shadow-lg shadow-emerald-500/10 backdrop-blur md:block"
               animate={reducedMotion ? undefined : { y: [0, 6, 0] }}
               transition={
                 reducedMotion
@@ -213,7 +213,7 @@ export default function Hero() {
 
             <motion.div
               variants={fadeUp}
-              className="absolute -right-6 top-6 hidden w-[210px] rounded-2xl border border-amber-100 bg-white p-4 text-sm text-slate-600 shadow-lg shadow-amber-500/10 md:block"
+              className="absolute -right-6 top-6 hidden w-[210px] rounded-2xl border border-cyan-100 bg-white/90 p-4 text-sm text-slate-600 shadow-lg shadow-cyan-500/10 backdrop-blur md:block"
               animate={reducedMotion ? undefined : { y: [0, -6, 0] }}
               transition={
                 reducedMotion
@@ -221,7 +221,7 @@ export default function Hero() {
                   : { duration: 5.5, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }
               }
             >
-              <div className="text-xs uppercase tracking-[0.3em] text-amber-600">
+              <div className="text-xs uppercase tracking-[0.3em] text-cyan-600">
                 Merchant Only
               </div>
               <div className="mt-2 font-semibold text-slate-900">Single-tap reorder</div>

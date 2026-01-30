@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "@/services/auth";
-import Toast from "@/components/ui/Toast";
+import { toast } from "sonner";
 
 export default function LoginCard() {
   const [showPw, setShowPw] = useState(false);
@@ -20,7 +20,6 @@ export default function LoginCard() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [needsVerify, setNeedsVerify] = useState(false);
-  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
   const redirectRef = useRef<number | null>(null);
 
   const loginMutation = useMutation({
@@ -28,6 +27,7 @@ export default function LoginCard() {
     onSuccess: (data) => {
       if (data && "token" in data && data.token) {
         localStorage.setItem("auth_token", data.token);
+        document.cookie = `auth_token=${encodeURIComponent(data.token)}; path=/; SameSite=Lax`;
       }
       if (data && "userId" in data && data.userId) {
         localStorage.setItem("auth_user_id", String(data.userId));
@@ -38,7 +38,7 @@ export default function LoginCard() {
 
       const target =
         data && "roleId" in data && data.roleId === 2 ? "/merchant" : "/partner";
-      setToast({ message: "Signed in successfully.", variant: "success" });
+      toast.success("Signed in successfully.");
       redirectRef.current = window.setTimeout(() => {
         router.push(target);
       }, 700);
@@ -58,12 +58,6 @@ export default function LoginCard() {
   };
 
   useEffect(() => {
-    if (!toast) return undefined;
-    const timer = window.setTimeout(() => setToast(null), 2200);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
-  useEffect(() => {
     return () => {
       if (redirectRef.current) window.clearTimeout(redirectRef.current);
     };
@@ -74,12 +68,12 @@ export default function LoginCard() {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5"
+      className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white/90 shadow-xl ring-1 ring-black/5 backdrop-blur"
     >
-      <Toast open={Boolean(toast)} message={toast?.message ?? ""} variant={toast?.variant} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-emerald-400 via-teal-400 to-cyan-400" />
       <div className="grid md:grid-cols-[1.05fr_0.95fr]">
         <div className="relative hidden min-h-140 overflow-hidden md:block">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(16,185,129,0.18),transparent_45%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.18),transparent_40%),linear-gradient(160deg,#ecfeff_0%,#e0f2fe_45%,#f8fafc_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(16,185,129,0.22),transparent_45%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.2),transparent_40%),linear-gradient(160deg,#ecfeff_0%,#e0f2fe_45%,#f8fafc_100%)]" />
           <div className="absolute -left-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-200/50 blur-3xl" />
           <div className="absolute inset-0 opacity-15">
             <Image src="/auth/login-bg.svg" alt="Login background" fill className="object-cover" priority />
@@ -161,7 +155,7 @@ export default function LoginCard() {
 
           <div className="pt-8 text-center md:pt-2">
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-600">Access Portal</p>
-            <h1 className="mt-3 text-2xl font-semibold text-slate-900 md:text-3xl">
+            <h1 className="mt-3 text-2xl font-semibold text-slate-950 md:text-3xl">
               Sign in to H Market
             </h1>
             <p className="mt-2 text-xs text-slate-500">
@@ -242,7 +236,7 @@ export default function LoginCard() {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loginMutation.isPending}
-              className="w-full rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
+              className="w-full rounded-xl bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition hover:opacity-95"
             >
               {loginMutation.isPending ? (
                 <span className="inline-flex items-center justify-center gap-2">
