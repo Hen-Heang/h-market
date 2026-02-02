@@ -1,13 +1,37 @@
 "use client";
 
-import { Bell, ChevronDown, ClipboardList, PackageCheck, Search, Truck, Users, Boxes } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { getPartnerOverview, getPartnerProfile, getPartnerStore, type PartnerOverview } from "@/services/partner";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import Skeleton from "@/components/ui/Skeleton";
+import { useState, useSyncExternalStore } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Bell,
+  Boxes,
+  ChevronDown,
+  ClipboardList,
+  LogOut,
+  Package,
+  PackageCheck,
+  Search,
+  Truck,
+  Users,
+} from "lucide-react";
+import {
+  getPartnerOverview,
+  getPartnerProfile,
+  getPartnerStore,
+  type PartnerOverview,
+} from "@/services/partner";
+
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/src/components/ui/card";
+import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
+import { Select } from "@/src/components/ui/select";
+import { SectionHeader } from "@/src/components/ui/section-header";
+import { StatCard, StatCardSkeleton } from "@/src/components/ui/stat-card";
+import { Skeleton } from "@/src/components/ui/skeleton";
+import { EmptyState } from "@/src/components/ui/empty-state";
 
 const DEFAULT_OVERVIEW: PartnerOverview = {
   activity: [
@@ -56,10 +80,24 @@ function buildPath(values: number[], height = 140, width = 460) {
 
 export default function PartnerHomePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const authKey = useSyncExternalStore(
+    (listener) => {
+      if (typeof window === "undefined") return () => {};
+      window.addEventListener("storage", listener);
+      return () => window.removeEventListener("storage", listener);
+    },
+    () => {
+      if (typeof window === "undefined") return null;
+      return localStorage.getItem("auth_user_id") || localStorage.getItem("auth_token");
+    },
+    () => null
+  );
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["partner-overview"],
+    queryKey: ["partner-overview", authKey],
     queryFn: getPartnerOverview,
+    enabled: Boolean(authKey),
   });
   const isLoadingData = isLoading || isFetching;
   const overview = data ?? DEFAULT_OVERVIEW;
@@ -70,9 +108,33 @@ export default function PartnerHomePage() {
 
   const ordersPath = buildPath(chart.orders);
   const returnsPath = buildPath(chart.returns);
+
+  const { data: profile } = useQuery({
+    queryKey: ["partner-profile", authKey],
+    queryFn: getPartnerProfile,
+    enabled: Boolean(authKey),
+  });
+
+  const { data: store } = useQuery({
+    queryKey: ["partner-store", authKey],
+    queryFn: getPartnerStore,
+    enabled: Boolean(authKey),
+  });
+
+  const displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : "Partner";
+  const rawStoreImage = (store?.bannerImage ?? "").trim();
+  const storeImage =
+    rawStoreImage && (rawStoreImage.startsWith("/") || /^https?:\/\//i.test(rawStoreImage))
+      ? rawStoreImage
+      : "/brand/storefront.svg";
+  const storeName = store?.name || "Your Store";
+
   const onLogout = () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    queryClient.removeQueries({ queryKey: ["partner-overview"] });
+    queryClient.removeQueries({ queryKey: ["partner-profile"] });
+    queryClient.removeQueries({ queryKey: ["partner-store"] });
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user_id");
     localStorage.removeItem("auth_role_id");
@@ -80,247 +142,265 @@ export default function PartnerHomePage() {
       router.push("/");
     }, 400);
   };
-// Render data of profile 
-const { data: profile } = useQuery({
-  queryKey: ["partner-profile"],
-  queryFn: getPartnerProfile,
-});
-// get partner name from profile data
-const displayName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : "Partner";
-
-const {data: store} = useQuery({
-    queryKey: ["partner-store"],
-    queryFn: getPartnerStore,
-  });
-// Render data of store
-const rawStoreImage = (store?.bannerImage ?? "").trim();
-const storeImage =
-  rawStoreImage && (rawStoreImage.startsWith("/") || /^https?:\/\//i.test(rawStoreImage))
-    ? rawStoreImage
-    : "/brand/logo.svg";
-const storeName = store?.name || "Your Store";
 
   return (
-    <div className="relative">
+    <div className="relative p-6 space-y-8">
+      {/* Background decorations */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl" />
-        <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
-        <div className="absolute left-1/2 top-96 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-200/30 blur-[110px]" />
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
+        <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-brand/5 blur-3xl" />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-950">
-            Welcome back, {displayName}!
-          </h1>
-          <p className="text-sm font-medium text-slate-600">
-            Here&apos;s what&apos;s happening with your store today.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              placeholder="Search inventory..."
-              className="w-56 rounded-full border border-slate-200 bg-white/80 py-2 pl-9 pr-4 text-sm text-slate-600 shadow-sm outline-none backdrop-blur focus:border-emerald-400"
-            />
-          </div>
-          <button
-            type="button"
-            className="relative rounded-full border border-slate-200 bg-white/80 p-2 text-slate-600 shadow-sm backdrop-blur hover:border-slate-300"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-500" />
-          </button>
-          <Link
-            href="/partner/profile#store"
-            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:border-emerald-200 hover:bg-emerald-50/60"
-          >
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-slate-100">
-              <Image src={storeImage} alt="Avatar" fill className="object-contain p-2" />
+      {/* Top Header Section */}
+      <SectionHeader
+        title={`Welcome back, ${displayName}!`}
+        description="Here's what's happening with your store today."
+        className="border-none pb-0 mb-0"
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <Input
+                type="search"
+                placeholder="Search inventory..."
+                className="w-60 pl-10"
+              />
             </div>
-            {storeName}
-            <ChevronDown className="h-4 w-4 text-slate-400" />
-          </Link>
-          <button
-            type="button"
-            onClick={onLogout}
-            disabled={isLoggingOut}
-            className="rounded-full border border-slate-200 bg-white/80 px-4 py-1.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isLoggingOut ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-transparent" />
-                Logging out...
-              </span>
-            ) : (
-              "Log out"
-            )}
-          </button>
-        </div>
-      </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-emerald-700">Order activity</h2>
-            <p className="text-xs font-medium text-slate-500">
-              Keep an eye on every stage of fulfillment.
-            </p>
+            {/* Notification Button */}
+            <Button
+              variant="ghost"
+              size="md"
+              className="relative p-2.5"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-success ring-2 ring-surface" />
+            </Button>
+
+            {/* Store Switcher */}
+            <Link
+              href="/partner/profile#store"
+              className="flex items-center gap-2 h-10 rounded-md border border-border bg-surface px-3 text-body font-medium text-text transition hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+            >
+              <div className="relative h-6 w-6 overflow-hidden rounded-full bg-surface-2">
+                <Image src={storeImage} alt="Store" fill className="object-contain p-1" />
+              </div>
+              <span className="max-w-24 truncate">{storeName}</span>
+              <ChevronDown className="h-4 w-4 text-text-muted" />
+            </Link>
+
+            {/* Logout Button */}
+            <Button
+              variant="outline"
+              size="md"
+              onClick={onLogout}
+              disabled={isLoggingOut}
+              leftIcon={isLoggingOut ? undefined : <LogOut className="h-4 w-4" />}
+              isLoading={isLoggingOut}
+            >
+              {isLoggingOut ? "Logging out..." : "Log out"}
+            </Button>
           </div>
-          <button
-            type="button"
-            className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
-          >
-            View workflow
-          </button>
-        </div>
+        }
+      />
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {isLoadingData
-            ? Array.from({ length: 5 }).map((_, idx) => (
-                <div
-                  key={`activity-skeleton-${idx}`}
-                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-                  >
-                  <Skeleton className="mx-auto h-10 w-10 rounded-full" />
-                  <Skeleton className="mx-auto mt-3 h-5 w-12" />
-                  <Skeleton className="mx-auto mt-2 h-3 w-20" />
-                </div>
-              ))
-            : activity.map(({ label, value }) => {
-                const Icon = ACTIVITY_ICONS[label as keyof typeof ACTIVITY_ICONS];
-                return (
-                  <div
-                    key={label}
-                    className="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm"
-                  >
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                      {Icon ? <Icon className="h-5 w-5" /> : null}
-                    </div>
-                    <div className="mt-3 text-lg font-semibold text-slate-900">{value}</div>
-                    <div className="text-xs text-slate-500">{label}</div>
-                  </div>
-                );
-              })}
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
+      {/* Order Activity Section */}
+      <Card className="p-6">
+        <CardHeader className="pb-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Store statistic</h2>
-              <p className="text-xs text-slate-500">
-                Orders and fulfillment trend over the last 10 days.
-              </p>
+              <CardTitle className="text-brand">Order activity</CardTitle>
+              <CardDescription>Keep an eye on every stage of fulfillment.</CardDescription>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Orders
-              <span className="ml-3 h-2 w-2 rounded-full bg-rose-400" />
-              Returns
-            </div>
+            <Button variant="secondary" size="sm">
+              View workflow
+            </Button>
           </div>
-
-          <div className="mt-6 rounded-2xl bg-slate-50/80 p-4">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>{chart.labels[0]}</span>
-              <span>{chart.labels[chart.labels.length - 1]}</span>
-            </div>
-            <div className="mt-4 h-48 w-full">
-              {isLoadingData ? (
-                <Skeleton className="h-full w-full rounded-2xl" />
-              ) : (
-                <svg viewBox="0 0 460 140" className="h-full w-full">
-                  <path d={ordersPath} fill="none" stroke="#10b981" strokeWidth="3" />
-                  <path d={returnsPath} fill="none" stroke="#fb7185" strokeWidth="3" />
-                </svg>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        </CardHeader>
+        <CardContent>
+          {/* Responsive grid: 1 col mobile, 2 tablet, 5 desktop */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             {isLoadingData
-              ? Array.from({ length: 3 }).map((_, idx) => (
-                  <div
-                    key={`kpi-skeleton-${idx}`}
-                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-                  >
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="mt-3 h-6 w-16" />
-                    <Skeleton className="mt-2 h-3 w-28" />
-                  </div>
+              ? Array.from({ length: 5 }).map((_, idx) => (
+                  <StatCardSkeleton key={`activity-skeleton-${idx}`} />
                 ))
-              : kpis.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-                  >
-                    <div className="text-xs text-slate-500">{item.label}</div>
-                    <div className="mt-2 text-xl font-semibold text-slate-900">
-                      {item.value}
-                    </div>
-                    <div
-                      className={[
-                        "mt-1 text-xs font-semibold",
-                        item.delta < 0 ? "text-rose-500" : "text-emerald-600",
-                      ].join(" ")}
-                    >
-                      {item.delta > 0 ? "+" : ""}
-                      {item.delta.toFixed(2)}% from last month
-                    </div>
-                  </div>
-                ))}
+              : activity.length === 0
+              ? (
+                <div className="col-span-full">
+                  <EmptyState
+                    icon={<Package className="h-6 w-6" />}
+                    title="No activity yet"
+                    description="Your order activity will appear here once you start receiving orders."
+                  />
+                </div>
+              )
+              : activity.map(({ label, value }) => {
+                  const Icon = ACTIVITY_ICONS[label as keyof typeof ACTIVITY_ICONS];
+                  return (
+                    <StatCard
+                      key={label}
+                      icon={Icon ? <Icon className="h-5 w-5" /> : undefined}
+                      value={value}
+                      label={label}
+                      iconVariant="brand"
+                    />
+                  );
+                })}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
-            <div className="text-sm font-semibold text-slate-900">Quick actions</div>
-            <div className="mt-4 grid gap-3">
-              {[
-                "Add new product",
-                "Create bulk import",
-                "Review pricing rules",
-                "Invite a merchant",
-              ].map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50/60"
-                >
-                  {item}
-                </button>
-              ))}
+      {/* Main Content Grid */}
+      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+        {/* Chart & KPIs Section */}
+        <Card className="p-6">
+          <CardHeader className="pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <CardTitle>Store statistic</CardTitle>
+                <CardDescription>Orders and fulfillment trend over the last 10 days.</CardDescription>
+              </div>
+              <div className="flex items-center gap-4">
+                {/* Legend */}
+                <div className="flex items-center gap-4 text-caption text-text-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-success" />
+                    Orders
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-danger" />
+                    Returns
+                  </span>
+                </div>
+                {/* Timeframe Dropdown */}
+                <Select defaultValue="10d" className="w-36">
+                  <option value="10d">Last 10 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                </Select>
+              </div>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent>
+            {/* Chart Area */}
+            <div className="rounded-lg bg-surface-2 p-4">
+              <div className="flex items-center justify-between text-caption text-text-muted">
+                <span>{chart.labels[0]}</span>
+                <span>{chart.labels[chart.labels.length - 1]}</span>
+              </div>
+              <div className="mt-4 h-48 w-full">
+                {isLoadingData ? (
+                  <Skeleton className="h-full w-full rounded-lg" />
+                ) : chart.orders.length === 0 ? (
+                  <EmptyState
+                    title="No chart data"
+                    description="Order trends will show up once there is activity."
+                  />
+                ) : (
+                  <svg viewBox="0 0 460 140" className="h-full w-full">
+                    <path d={ordersPath} fill="none" stroke="hsl(var(--success))" strokeWidth="3" />
+                    <path d={returnsPath} fill="none" stroke="hsl(var(--danger))" strokeWidth="3" />
+                  </svg>
+                )}
+              </div>
+            </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
-            <div className="text-sm font-semibold text-slate-900">Top merchants</div>
-            <div className="mt-4 space-y-3">
+            {/* KPI Cards */}
+            <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
               {isLoadingData
                 ? Array.from({ length: 3 }).map((_, idx) => (
-                    <div
-                      key={`merchant-skeleton-${idx}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2"
-                    >
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-3 w-12" />
-                    </div>
+                    <StatCardSkeleton key={`kpi-skeleton-${idx}`} />
                   ))
-                : topMerchants.map((item) => (
-                    <div
-                      key={item.name}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2 text-xs"
-                    >
-                      <span className="font-semibold text-slate-700">{item.name}</span>
-                      <span className="text-slate-500">{item.spend}</span>
-                    </div>
+                : kpis.length === 0
+                ? (
+                  <div className="col-span-full">
+                    <EmptyState
+                      title="No KPIs available"
+                      description="KPI data will appear here once available."
+                    />
+                  </div>
+                )
+                : kpis.map((item) => (
+                    <StatCard
+                      key={item.label}
+                      value={item.value}
+                      label={item.label}
+                      subtext={`${item.delta > 0 ? "+" : ""}${item.delta.toFixed(2)}% from last month`}
+                      subtextVariant={item.delta < 0 ? "danger" : "success"}
+                      className="text-left"
+                    />
                   ))}
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Right Column */}
+        <div className="space-y-8">
+          {/* Quick Actions */}
+          <Card className="p-6">
+            <CardHeader className="pb-4">
+              <CardTitle>Quick actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3">
+                {[
+                  "Add new product",
+                  "Create bulk import",
+                  "Review pricing rules",
+                  "Invite a merchant",
+                ].map((item) => (
+                  <Button
+                    key={item}
+                    variant="secondary"
+                    size="md"
+                    className="justify-start text-left hover:bg-brand/5 hover:text-brand"
+                  >
+                    {item}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Merchants */}
+          <Card className="p-6">
+            <CardHeader className="pb-4">
+              <CardTitle>Top merchants</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {isLoadingData
+                  ? Array.from({ length: 3 }).map((_, idx) => (
+                      <div
+                        key={`merchant-skeleton-${idx}`}
+                        className="flex items-center justify-between rounded-lg border border-border bg-surface-2 px-4 py-3"
+                      >
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    ))
+                  : topMerchants.length === 0
+                  ? (
+                    <EmptyState
+                      icon={<Users className="h-6 w-6" />}
+                      title="No merchants yet"
+                      description="Your top merchants will appear here."
+                    />
+                  )
+                  : topMerchants.map((item) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between rounded-lg border border-border bg-surface-2 px-4 py-3 text-body"
+                      >
+                        <span className="font-medium text-text">{item.name}</span>
+                        <span className="text-text-muted">{item.spend}</span>
+                      </div>
+                    ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -8,8 +8,13 @@ export async function parseJson<T>(res: Response): Promise<T | null> {
 
 export function getErrorMessage(payload: unknown, fallback: string) {
   if (payload && typeof payload === "object") {
-    const obj = payload as { message?: string; status?: { message?: string } };
-    return obj.message || obj.status?.message || fallback;
+    const obj = payload as {
+      message?: string;
+      detail?: string;
+      title?: string;
+      status?: { message?: string };
+    };
+    return obj.message || obj.detail || obj.title || obj.status?.message || fallback;
   }
   return fallback;
 }

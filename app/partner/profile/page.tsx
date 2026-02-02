@@ -1,33 +1,39 @@
 "use client";
 
-import Image from "next/image";
 import {
-  BadgeCheck,
-  Image as ImageIcon,
-  Link as LinkIcon,
-  MapPin,
-  Pencil,
   Check,
-  X,
-  Phone,
-  ShieldCheck,
-  Star,
-  Store,
-  UserRound,
-  Users,
-  MapPinned,
-  FileText,
   Eye,
-  ListPlus,
-  Tags,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  X,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useSyncExternalStore, useState } from "react";
 import { toast } from "sonner";
-import Skeleton from "@/components/ui/Skeleton";
+
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/src/components/ui/card";
+import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
+import { Textarea } from "@/src/components/ui/textarea";
+import { Select } from "@/src/components/ui/select";
+import { Badge } from "@/src/components/ui/badge";
+import { SectionHeader } from "@/src/components/ui/section-header";
+import { Skeleton } from "@/src/components/ui/skeleton";
+import { Dropzone, ImagePreviewCard } from "@/src/components/ui/dropzone";
+
 import {
   createPartnerProfile,
   createPartnerStore,
+  deletePartnerStore,
   getPartnerProfile,
   getPartnerStore,
   updatePartnerProfile,
@@ -36,39 +42,51 @@ import {
 import type { PartnerProfilePayload } from "@/types/partner";
 import type { PartnerStorePayload } from "@/types/store";
 
-const CATEGORY_TAGS = ["Grocery", "Snacks", "Household", "Beauty", "Pharmacy", "Homeware"];
 const HIGHLIGHTS = [
   { label: "Fulfillment score", value: "98.4%" },
   { label: "Average dispatch", value: "4.2 hrs" },
   { label: "Active merchants", value: "128" },
 ];
 
-const EMPTY_PROFILE: PartnerProfilePayload = {
-  firstName: "",
-  lastName: "",
-  gender: "",
-  profileImage: "",
-};
+const TEAM_MEMBERS = [
+  { name: "Sophea R.", role: "Admin", status: "online" as const, initials: "SR" },
+  { name: "Dara V.", role: "Operations", status: "offline" as const, initials: "DV" },
+  { name: "Mina L.", role: "Support", status: "online" as const, initials: "ML" },
+];
 
-const EMPTY_STORE: PartnerStorePayload = {
-  name: "",
-  description: "",
-  address: "",
-  bannerImage: "",
-  primaryPhone: "",
-  additionalPhone: [""],
-  isPublish: true,
-};
+const VISIBILITY_ITEMS = [
+  { label: "Boosted listing", detail: "Top 10 for snacks", status: "Active" },
+  { label: "Merchants following", detail: "214 followers", status: "Healthy" },
+  { label: "Response SLA", detail: "Under 15 minutes", status: "Excellent" },
+];
+
 
 export default function PartnerProfilePage() {
   const queryClient = useQueryClient();
+  const autoCreateProfileRef = useRef(false);
+  const autoCreateStoreRef = useRef(false);
+  const isMockMode = !process.env.NEXT_PUBLIC_API_BASE_URL;
+  const authKey = useSyncExternalStore(
+    (listener) => {
+      if (typeof window === "undefined") return () => {};
+      window.addEventListener("storage", listener);
+      return () => window.removeEventListener("storage", listener);
+    },
+    () => {
+      if (typeof window === "undefined") return null;
+      return localStorage.getItem("auth_user_id") || localStorage.getItem("auth_token");
+    },
+    () => null
+  );
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["partner-profile"],
+    queryKey: ["partner-profile", authKey],
     queryFn: getPartnerProfile,
+    enabled: Boolean(authKey),
   });
   const { data: storeData, isLoading: isStoreLoading, isFetching: isStoreFetching } = useQuery({
-    queryKey: ["partner-store"],
+    queryKey: ["partner-store", authKey],
     queryFn: getPartnerStore,
+    enabled: Boolean(authKey),
   });
   const [form, setForm] = useState<PartnerProfilePayload | null>(null);
   const [storeForm, setStoreForm] = useState<PartnerStorePayload | null>(null);
@@ -80,6 +98,8 @@ export default function PartnerProfilePage() {
   const isLoadingStore = isStoreLoading || isStoreFetching;
   const hasProfile = Boolean(data);
   const hasStore = Boolean(storeData);
+  const isProfileEditable = isEditingProfile || !hasProfile;
+  const isStoreEditable = isEditingStore || !hasStore;
 
   const profileValues: PartnerProfilePayload = form ?? {
     firstName: data?.firstName ?? "",
@@ -92,7 +112,7 @@ export default function PartnerProfilePage() {
     name: storeData?.name ?? "",
     description: storeData?.description ?? "",
     address: storeData?.address ?? "",
-    bannerImage: storeData?.bannerImage ?? "",
+    bannerImage: storeData?.bannerImage ?? "/brand/storefront.svg",
     primaryPhone: storeData?.primaryPhone ?? "",
     additionalPhone: storeData?.additionalPhone?.length ? storeData.additionalPhone : [""],
     isPublish: storeData?.isPublish ?? true,
@@ -134,9 +154,39 @@ export default function PartnerProfilePage() {
     },
   });
 
-  const displayName = hasProfile
-    ? `${data?.firstName ?? ""} ${data?.lastName ?? ""}`.trim()
-    : "Partner profile";
+  useEffect(() => {
+    if (!isMockMode) return;
+    if (!authKey || isLoadingProfile || profileMutation.isPending) return;
+    if (hasProfile || autoCreateProfileRef.current) return;
+    autoCreateProfileRef.current = true;
+    profileMutation.mutate({
+      firstName: "Partner",
+      lastName: "User",
+      gender: "other",
+      profileImage: "",
+    });
+  }, [authKey, hasProfile, isLoadingProfile, profileMutation]);
+
+  useEffect(() => {
+    if (!isMockMode) return;
+    if (!authKey || isLoadingStore || storeMutation.isPending) return;
+    if (hasStore || autoCreateStoreRef.current) return;
+    autoCreateStoreRef.current = true;
+  }, [authKey, hasStore, isLoadingStore, storeMutation]);
+  const storeDeleteMutation = useMutation({
+    mutationFn: deletePartnerStore,
+    onSuccess: () => {
+      queryClient.setQueryData(["partner-store", authKey], null);
+      setStoreForm(null);
+      setIsEditingStore(false);
+      toast.success("Store deleted.");
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Failed to delete store";
+      setStoreError(message);
+      toast.error(message);
+    },
+  });
 
   const onEditProfile = () => {
     setError(null);
@@ -151,7 +201,7 @@ export default function PartnerProfilePage() {
   };
 
   const onSubmit = () => {
-    if (!isEditingProfile) {
+    if (!isEditingProfile && hasProfile) {
       onEditProfile();
       return;
     }
@@ -171,7 +221,7 @@ export default function PartnerProfilePage() {
   };
 
   const onSubmitStore = () => {
-    if (!isEditingStore) {
+    if (!isEditingStore && hasStore) {
       setStoreError(null);
       setIsEditingStore(true);
       setStoreForm(storeValues);
@@ -215,639 +265,535 @@ export default function PartnerProfilePage() {
   };
 
   return (
-    <div className="relative space-y-6">
+    <div className="relative p-6 space-y-8">
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-emerald-300/25 blur-3xl" />
-        <div className="absolute right-0 top-32 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl" />
-        <div className="absolute left-1/2 top-80 h-56 w-56 -translate-x-1/2 rounded-full bg-amber-200/30 blur-[100px]" />
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-950">Partner profile</h1>
-          <p className="text-sm font-medium text-slate-600">
-            Keep your storefront polished and trusted by merchants.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className="rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur hover:border-slate-300"
-          >
-            Preview profile
-          </button>
-        </div>
+        <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-brand/10 blur-3xl" />
+        <div className="absolute right-0 top-32 h-80 w-80 rounded-full bg-brand/5 blur-3xl" />
       </div>
 
-      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.16),_transparent_45%),_radial-gradient(circle_at_80%_10%,_rgba(56,189,248,0.16),_transparent_40%),_linear-gradient(120deg,_rgba(15,118,110,0.08),_rgba(255,255,255,0)_50%)]" />
-        <div className="relative grid gap-6 p-6 md:grid-cols-[1.2fr_1fr]">
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="relative h-24 w-24 overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-sm">
-              <Image src="/brand/logo.svg" alt="Partner logo" fill className="object-contain p-4" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-2xl font-semibold text-slate-900">
-                  {isLoadingProfile ? "Loading..." : displayName || "Partner profile"}
-                </h2>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  <BadgeCheck className="h-3.5 w-3.5" />
-                  Verified
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700">
-                  <Star className="h-3.5 w-3.5 text-amber-500" />
-                  4.9 rating
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  SenSok, Phnom Penh
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <LinkIcon className="h-3.5 w-3.5" />
-                  blurzsupply.co
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 font-semibold text-emerald-700">
-                  Fast dispatch
-                </span>
-                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700">
-                  24/7 merchant chat
-                </span>
-                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700">
-                  Export ready
-                </span>
-              </div>
-            </div>
+      <SectionHeader
+        title="Profile & compliance"
+        description="Keep your enterprise profile trusted, discoverable, and consistent."
+        className="border-none pb-0 mb-0"
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="md">
+              Preview profile
+            </Button>
+            <Button variant="primary" size="md" onClick={onSubmit}>
+              Save changes
+            </Button>
           </div>
+        }
+      />
 
-          <div className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.3em] text-emerald-600">
-                  Trust status
+      <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-8">
+          <Card id="store" className="scroll-mt-24">
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Partner info</CardTitle>
+                  <CardDescription>Manage the personal details shown to merchants.</CardDescription>
                 </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">Active partner</div>
-              </div>
-              <div className="flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Protected
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              {HIGHLIGHTS.map((item) => (
-                <div key={item.label} className="rounded-xl border border-slate-100 bg-white px-3 py-2">
-                  <div className="text-xs text-slate-500">{item.label}</div>
-                  <div className="text-sm font-semibold text-slate-900">{item.value}</div>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Update cover assets
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-6">
-          <div id="store" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm scroll-mt-24">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                    <UserRound className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Partner info</h3>
-                    <p className="text-xs text-slate-500">Manage the personal details shown to merchants.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                <Badge variant={hasProfile ? "success" : "warning"}>
                   {hasProfile ? "Profile active" : "Profile pending"}
-                </span>
-                {isEditingProfile ? (
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {isLoadingProfile ? (
                   <>
-                    <button
-                      type="button"
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">First name</label>
+                      <Input
+                        value={profileValues.firstName}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...(prev ?? profileValues),
+                            firstName: e.target.value,
+                          }))
+                        }
+                        disabled={!isProfileEditable}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Last name</label>
+                      <Input
+                        value={profileValues.lastName}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...(prev ?? profileValues), lastName: e.target.value }))
+                        }
+                        disabled={!isProfileEditable}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Gender</label>
+                      <Select
+                        value={profileValues.gender}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...(prev ?? profileValues), gender: e.target.value }))
+                        }
+                        disabled={!isProfileEditable}
+                      >
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Profile image URL</label>
+                      <Input
+                        type="url"
+                        value={profileValues.profileImage ?? ""}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...(prev ?? profileValues),
+                            profileImage: e.target.value,
+                          }))
+                        }
+                        disabled={!isProfileEditable}
+                      />
+                      <p className="text-caption text-text-muted">
+                        Enter a URL for your profile image.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+              {error && (
+                <div className="mt-4 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-caption text-danger">
+                  {error}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="justify-end">
+              {isEditingProfile || !hasProfile ? (
+                <>
+                  {hasProfile && (
+                    <Button
+                      variant="outline"
+                      size="md"
                       onClick={onCancelProfile}
                       disabled={profileMutation.isPending}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
+                      leftIcon={<X className="h-4 w-4" />}
                     >
-                      <X className="h-3.5 w-3.5" />
                       Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onSubmit}
-                      disabled={profileMutation.isPending || isLoadingProfile}
-                      className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-emerald-500 to-teal-500 px-3 py-1 text-xs font-semibold text-white shadow-md shadow-emerald-500/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                      {profileMutation.isPending ? "Saving..." : "Save"}
-                    </button>
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={onSubmit}
+                    disabled={profileMutation.isPending || isLoadingProfile}
+                    isLoading={profileMutation.isPending}
+                    leftIcon={!profileMutation.isPending ? <Check className="h-4 w-4" /> : undefined}
+                  >
+                    {hasProfile ? "Save changes" : "Create profile"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={onEditProfile}
+                  disabled={isLoadingProfile}
+                  leftIcon={<Pencil className="h-4 w-4" />}
+                >
+                  Edit profile
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Warehouse profile</CardTitle>
+                  <CardDescription>Tell merchants how you store, ship, and support.</CardDescription>
+                </div>
+                <Badge variant={storeValues.isPublish ? "success" : "neutral"}>
+                  <Eye className="mr-1 h-3 w-3" />
+                  {storeValues.isPublish ? "Visible to merchants" : "Hidden"}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {isLoadingStore ? (
+                  <>
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-28 sm:col-span-2" />
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={onEditProfile}
-                    disabled={isLoadingProfile}
-                    className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-emerald-500 to-teal-500 px-3 py-1 text-xs font-semibold text-white shadow-md shadow-emerald-500/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </button>
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Store name</label>
+                      <Input
+                        value={storeValues.name}
+                        onChange={(e) =>
+                          setStoreForm((prev) => ({ ...(prev ?? storeValues), name: e.target.value }))
+                        }
+                        disabled={!isStoreEditable}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Address</label>
+                      <Input
+                        value={storeValues.address}
+                        onChange={(e) =>
+                          setStoreForm((prev) => ({ ...(prev ?? storeValues), address: e.target.value }))
+                        }
+                        disabled={!isStoreEditable}
+                      />
+                    </div>
+                    <div className="sm:col-span-2 space-y-2">
+                      <label className="text-caption font-medium text-text">Short bio</label>
+                      <Textarea
+                        value={storeValues.description}
+                        onChange={(e) =>
+                          setStoreForm((prev) => ({
+                            ...(prev ?? storeValues),
+                            description: e.target.value,
+                          }))
+                        }
+                        disabled={!isStoreEditable}
+                        rows={4}
+                      />
+                      <p className="text-caption text-text-muted">
+                        Describe your warehouse and services to merchants.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Primary phone</label>
+                      <Input
+                        value={storeValues.primaryPhone}
+                        onChange={(e) =>
+                          setStoreForm((prev) => ({
+                            ...(prev ?? storeValues),
+                            primaryPhone: e.target.value,
+                          }))
+                        }
+                        disabled={!isStoreEditable}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Banner image URL</label>
+                      <Input
+                        type="url"
+                        value={storeValues.bannerImage}
+                        onChange={(e) =>
+                          setStoreForm((prev) => ({
+                            ...(prev ?? storeValues),
+                            bannerImage: e.target.value,
+                          }))
+                        }
+                        disabled={!isStoreEditable}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-caption font-medium text-text mb-1.5 block">
+                        Additional phone numbers
+                      </label>
+                      <div className="space-y-2">
+                        {storeValues.additionalPhone.map((phone, idx) => (
+                          <Input
+                            key={`additional-phone-${idx}`}
+                            value={phone}
+                            onChange={(e) =>
+                              setStoreForm((prev) => {
+                                const base = prev ?? storeValues;
+                                const next = [...base.additionalPhone];
+                                next[idx] = e.target.value;
+                                return { ...base, additionalPhone: next };
+                              })
+                            }
+                            disabled={!isStoreEditable}
+                          />
+                        ))}
+                        {isStoreEditable && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setStoreForm((prev) => {
+                                const base = prev ?? storeValues;
+                                return { ...base, additionalPhone: [...base.additionalPhone, ""] };
+                              })
+                            }
+                            leftIcon={<Plus className="h-3.5 w-3.5" />}
+                          >
+                            Add phone
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-caption font-medium text-text">Publish status</label>
+                      <Select
+                        value={storeValues.isPublish ? "published" : "hidden"}
+                        onChange={(e) =>
+                          setStoreForm((prev) => ({
+                            ...(prev ?? storeValues),
+                            isPublish: e.target.value === "published",
+                          }))
+                        }
+                        disabled={!isStoreEditable}
+                      >
+                        <option value="published">Published</option>
+                        <option value="hidden">Hidden</option>
+                      </Select>
+                    </div>
+                  </>
                 )}
               </div>
-            </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <UserRound className="h-4 w-4 text-emerald-600" />
-                  First name
-                </span>
-                {isLoadingProfile ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="text"
-                    value={profileValues.firstName}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...(prev ?? profileValues), firstName: e.target.value }))
-                    }
-                    disabled={!isEditingProfile}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <UserRound className="h-4 w-4 text-emerald-600" />
-                  Last name
-                </span>
-                {isLoadingProfile ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="text"
-                    value={profileValues.lastName}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...(prev ?? profileValues), lastName: e.target.value }))
-                    }
-                    disabled={!isEditingProfile}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <Users className="h-4 w-4 text-emerald-600" />
-                  Gender
-                </span>
-                {isLoadingProfile ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <select
-                    value={profileValues.gender}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...(prev ?? profileValues), gender: e.target.value }))
-                    }
-                    disabled={!isEditingProfile}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-emerald-600" />
-                  Profile image URL
-                </span>
-                {isLoadingProfile ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="url"
-                    value={profileValues.profileImage ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...(prev ?? profileValues), profileImage: e.target.value }))
-                    }
-                    disabled={!isEditingProfile}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-            </div>
-
-            {error && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {error}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+              {storeError && (
+                <div className="mt-4 rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-caption text-danger">
+                  {storeError}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                    <Store className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Warehouse profile</h3>
-                    <p className="text-xs text-slate-500">
-                      Tell merchants how you store, ship, and support.
-                    </p>
-                  </div>
+                {hasStore && !isEditingStore && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setStoreError(null);
+                      if (storeDeleteMutation.isPending) return;
+                      if (window.confirm("Delete this store? This cannot be undone.")) {
+                        storeDeleteMutation.mutate();
+                      }
+                    }}
+                    disabled={storeDeleteMutation.isPending}
+                    isLoading={storeDeleteMutation.isPending}
+                    leftIcon={!storeDeleteMutation.isPending ? <Trash2 className="h-4 w-4" /> : undefined}
+                  >
+                    Delete store
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                {isEditingStore || !hasStore ? (
+                  <>
+                    {hasStore && (
+                      <Button
+                        variant="outline"
+                        size="md"
+                        onClick={onCancelStore}
+                        disabled={storeMutation.isPending || storeDeleteMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    <Button
+                      variant="primary"
+                      size="md"
+                      onClick={onSubmitStore}
+                      disabled={storeMutation.isPending || storeDeleteMutation.isPending || isLoadingStore}
+                      isLoading={storeMutation.isPending}
+                    >
+                      {hasStore ? "Save store" : "Create store"}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={onSubmitStore}
+                    disabled={isLoadingStore || storeDeleteMutation.isPending}
+                    leftIcon={<Pencil className="h-4 w-4" />}
+                  >
+                    Edit store
+                  </Button>
+                )}
+              </div>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Brand assets</CardTitle>
+              <CardDescription>Logos and storefront imagery for a premium appearance.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Dropzone
+                label="Drop cover image here or click to browse"
+                hint="PNG or JPG up to 5MB. Recommended: 1200x400px."
+              />
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <ImagePreviewCard placeholder />
+                <ImagePreviewCard placeholder />
+                <ImagePreviewCard placeholder />
+              </div>
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button variant="secondary" size="sm">
+                Manage assets
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Contact and compliance</CardTitle>
+                  <CardDescription>Verified contact details help merchants trust you faster.</CardDescription>
+                </div>
+                <Badge variant="success">KYC complete</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-caption font-medium text-text">Primary email</label>
+                  <Input type="email" defaultValue="hello@blurzsupply.co" />
+                  <p className="text-caption text-text-muted">
+                    This email will be visible to merchants.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-caption font-medium text-text">Phone number</label>
+                  <Input type="tel" defaultValue="+855 98 555 231" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-caption font-medium text-text">Tax ID</label>
+                  <Input defaultValue="KH-00982131" />
+                  <p className="text-caption text-text-muted">Required for invoicing.</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-caption font-medium text-text">Business hours</label>
+                  <Input defaultValue="Mon - Sat, 8:00 AM - 6:00 PM" />
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                  <Eye className="h-3.5 w-3.5 text-slate-500" />
-                  {storeValues.isPublish ? "Visible to merchants" : "Hidden"}
-                </span>
-                {isEditingStore ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={onCancelStore}
-                      disabled={storeMutation.isPending}
-                      className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onSubmitStore}
-                      disabled={storeMutation.isPending || isLoadingStore}
-                      className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {storeMutation.isPending ? "Saving..." : "Save store"}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={onSubmitStore}
-                    disabled={isLoadingStore}
-                    className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit store
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <Store className="h-4 w-4 text-emerald-600" />
-                  Store name
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="text"
-                    value={storeValues.name}
-                    onChange={(e) =>
-                      setStoreForm((prev) => ({ ...(prev ?? storeValues), name: e.target.value }))
-                    }
-                    disabled={!isEditingStore}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <MapPinned className="h-4 w-4 text-emerald-600" />
-                  Address
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="text"
-                    value={storeValues.address}
-                    onChange={(e) =>
-                      setStoreForm((prev) => ({ ...(prev ?? storeValues), address: e.target.value }))
-                    }
-                    disabled={!isEditingStore}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600 sm:col-span-2">
-                <span className="inline-flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-emerald-600" />
-                  Short bio
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-24 w-full rounded-2xl" />
-                ) : (
-                  <textarea
-                    rows={4}
-                    value={storeValues.description}
-                    onChange={(e) =>
-                      setStoreForm((prev) => ({ ...(prev ?? storeValues), description: e.target.value }))
-                    }
-                    disabled={!isEditingStore}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-emerald-600" />
-                  Primary phone
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="text"
-                    value={storeValues.primaryPhone}
-                    onChange={(e) =>
-                      setStoreForm((prev) => ({ ...(prev ?? storeValues), primaryPhone: e.target.value }))
-                    }
-                    disabled={!isEditingStore}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-emerald-600" />
-                  Banner image URL
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <input
-                    type="url"
-                    value={storeValues.bannerImage}
-                    onChange={(e) =>
-                      setStoreForm((prev) => ({ ...(prev ?? storeValues), bannerImage: e.target.value }))
-                    }
-                    disabled={!isEditingStore}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  />
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600 sm:col-span-2">
-                <span className="inline-flex items-center gap-2">
-                  <ListPlus className="h-4 w-4 text-emerald-600" />
-                  Additional phone numbers
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <div className="space-y-2">
-                    {storeValues.additionalPhone.map((phone, idx) => (
-                      <input
-                        key={`additional-phone-${idx}`}
-                        type="text"
-                        value={phone}
-                        onChange={(e) =>
-                          setStoreForm((prev) => {
-                            const base = prev ?? storeValues;
-                            const next = [...base.additionalPhone];
-                            next[idx] = e.target.value;
-                            return { ...base, additionalPhone: next };
-                          })
-                        }
-                        disabled={!isEditingStore}
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                      />
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setStoreForm((prev) => {
-                          const base = prev ?? storeValues;
-                          return { ...base, additionalPhone: [...base.additionalPhone, ""] };
-                        })
-                      }
-                      disabled={!isEditingStore}
-                      className="inline-flex items-center gap-2 rounded-full border border-dashed border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-600"
-                    >
-                      <Phone className="h-3.5 w-3.5" />
-                      Add phone
-                    </button>
-                  </div>
-                )}
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-emerald-600" />
-                  Publish status
-                </span>
-                {isLoadingStore ? (
-                  <Skeleton className="h-10 w-full rounded-2xl" />
-                ) : (
-                  <select
-                    value={storeValues.isPublish ? "published" : "hidden"}
-                    onChange={(e) =>
-                      setStoreForm((prev) => ({
-                        ...(prev ?? storeValues),
-                        isPublish: e.target.value === "published",
-                      }))
-                    }
-                    disabled={!isEditingStore}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                  >
-                    <option value="published">Published</option>
-                    <option value="hidden">Hidden</option>
-                  </select>
-                )}
-              </label>
-            </div>
-
-            {storeError && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {storeError}
-              </div>
-            )}
-
-            <div className="mt-5">
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
-                <Tags className="h-4 w-4 text-emerald-600" />
-                Top categories
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {CATEGORY_TAGS.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-                  >
-                    {tag}
-                  </span>
-                ))}
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-dashed border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-600"
-                >
-                  <Tags className="h-3.5 w-3.5" />
-                  Add category
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Contact and compliance</h3>
-                <p className="text-xs text-slate-500">
-                  Verified contact details help merchants trust you faster.
-                </p>
-              </div>
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                KYC complete
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                Primary email
-                <input
-                  type="email"
-                  defaultValue="hello@blurzsupply.co"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                />
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                Phone number
-                <input
-                  type="tel"
-                  defaultValue="+855 98 555 231"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                />
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                Tax ID
-                <input
-                  type="text"
-                  defaultValue="KH-00982131"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                />
-              </label>
-              <label className="space-y-2 text-xs font-semibold text-slate-600">
-                Business hours
-                <input
-                  type="text"
-                  defaultValue="Mon - Sat, 8:00 AM - 6:00 PM"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm outline-none focus:border-emerald-400"
-                />
-              </label>
-            </div>
-          </div>
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button variant="primary" size="md">
+                Update contact info
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">Brand assets</h3>
-            <p className="text-xs text-slate-500">
-              Upload logos and storefront visuals for a premium look.
-            </p>
-
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4 text-center text-xs text-slate-500">
-                Drop cover image here or <span className="font-semibold text-emerald-600">browse</span>
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trust status</CardTitle>
+              <CardDescription>Compliance and performance signals for merchants.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-caption uppercase tracking-wider text-brand font-semibold">Status</p>
+                  <p className="mt-1 text-body font-semibold text-text">Active partner</p>
+                </div>
+                <Badge variant="success">
+                  <ShieldCheck className="mr-1 h-3 w-3" />
+                  Protected
+                </Badge>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                {[0, 1, 2].map((idx) => (
-                  <div
-                    key={idx}
-                    className="h-20 rounded-2xl border border-slate-200 bg-[linear-gradient(120deg,_#f8fafc_0%,_#e2e8f0_100%)]"
-                  />
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {HIGHLIGHTS.map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border bg-surface px-3 py-2">
+                    <p className="text-caption text-text-muted">{item.label}</p>
+                    <p className="text-body font-semibold text-text">{item.value}</p>
+                  </div>
                 ))}
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">Team access</h3>
-            <p className="text-xs text-slate-500">
-              Invite teammates and assign roles in one click.
-            </p>
-            <div className="mt-4 space-y-3">
-              {[
-                { name: "Sophea R.", role: "Admin", status: "Online" },
-                { name: "Dara V.", role: "Ops", status: "Offline" },
-                { name: "Mina L.", role: "Support", status: "Online" },
-              ].map((member) => (
-                <div
-                  key={member.name}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs"
-                >
-                  <div>
-                    <div className="font-semibold text-slate-900">{member.name}</div>
-                    <div className="text-slate-500">{member.role}</div>
-                  </div>
-                  <span
-                    className={[
-                      "rounded-full px-2 py-1 text-[10px] font-semibold",
-                      member.status === "Online"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-200 text-slate-600",
-                    ].join(" ")}
+          <Card>
+            <CardHeader>
+              <CardTitle>Storefront visibility</CardTitle>
+              <CardDescription>Keep your profile trending in partner search.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {VISIBILITY_ITEMS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
                   >
-                    {member.status}
-                  </span>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold text-emerald-700"
+                    <div>
+                      <p className="text-body font-medium text-text">{item.label}</p>
+                      <p className="text-caption text-text-muted">{item.detail}</p>
+                    </div>
+                    <Badge variant="success">{item.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="justify-end">
+              <Button variant="outline" size="sm">
+                Boost listing
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Team access</CardTitle>
+              <CardDescription>Invite teammates and assign roles in one click.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {TEAM_MEMBERS.map((member) => (
+                  <div
+                    key={member.name}
+                    className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 text-caption font-semibold text-text">
+                        {member.initials}
+                        <span
+                          className={
+                            member.status === "online"
+                              ? "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-surface"
+                              : "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-border ring-2 ring-surface"
+                          }
+                        />
+                      </div>
+                      <div>
+                        <p className="text-body font-medium text-text">{member.name}</p>
+                        <p className="text-caption text-text-muted">{member.role}</p>
+                      </div>
+                    </div>
+                    <Badge variant={member.status === "online" ? "success" : "neutral"}>
+                      {member.status === "online" ? "Online" : "Offline"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                variant="secondary"
+                size="md"
+                className="w-full"
+                leftIcon={<Plus className="h-4 w-4" />}
               >
                 Invite teammate
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">Storefront visibility</h3>
-            <p className="text-xs text-slate-500">
-              Keep your profile trending in partner search.
-            </p>
-            <div className="mt-4 space-y-3">
-              {[
-                { label: "Boosted listing", detail: "Top 10 for snacks", status: "Active" },
-                { label: "Merchants following", detail: "214 followers", status: "Healthy" },
-                { label: "Response SLA", detail: "Under 15 minutes", status: "Excellent" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 text-xs"
-                >
-                  <div>
-                    <div className="font-semibold text-slate-900">{item.label}</div>
-                    <div className="text-slate-500">{item.detail}</div>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
-                    {item.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

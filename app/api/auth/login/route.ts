@@ -78,14 +78,16 @@ export async function POST(req: Request) {
         data?: {
           token?: string;
           accessToken?: string;
+          access_token?: string;
           userId?: number;
           roleId?: number;
-          user?: { id?: number; roleId?: number };
+          user?: { id?: number; roleId?: number; role_id?: number };
         };
         message?: string;
         status?: { message?: string };
         token?: string;
         accessToken?: string;
+        access_token?: string;
         userId?: number;
         roleId?: number;
       }
@@ -96,10 +98,13 @@ export async function POST(req: Request) {
   const token =
     data.token ||
     data.accessToken ||
+    data.access_token ||
     typedPayload?.token ||
-    typedPayload?.accessToken;
+    typedPayload?.accessToken ||
+    typedPayload?.access_token;
   const userId = data.userId || typedPayload?.userId || data.user?.id;
-  const roleId = data.roleId || typedPayload?.roleId || data.user?.roleId;
+  const roleId =
+    data.roleId || typedPayload?.roleId || data.user?.roleId || data.user?.role_id;
 
   return NextResponse.json({
     ok: true,

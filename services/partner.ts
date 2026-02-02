@@ -10,11 +10,10 @@ export type PartnerOverview = {
 };
 
 export async function getPartnerOverview(): Promise<PartnerOverview> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/overview", {
     headers: authHeader ? { Authorization: authHeader } : undefined,
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -26,11 +25,10 @@ export async function getPartnerOverview(): Promise<PartnerOverview> {
 }
 
 export async function getPartnerProfile(): Promise<PartnerProfile | null> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/profile", {
     headers: authHeader ? { Authorization: authHeader } : undefined,
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -38,6 +36,10 @@ export async function getPartnerProfile(): Promise<PartnerProfile | null> {
 
   const data = await parseJson<PartnerProfile | { message?: string }>(res);
   if (!res.ok) {
+    if (data && typeof data === "object" && "message" in data) {
+      const message = String(data.message || "").toLowerCase();
+      if (message.includes("not found")) return null;
+    }
     throw new Error(getErrorMessage(data, "Failed to load profile"));
   }
   if (!data || !isPartnerProfile(data)) return null;
@@ -47,15 +49,14 @@ export async function getPartnerProfile(): Promise<PartnerProfile | null> {
 export async function createPartnerProfile(
   payload: PartnerProfilePayload
 ): Promise<PartnerProfile> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/profile", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(authHeader ? { Authorization: authHeader } : {}),
     },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
 
@@ -69,15 +70,14 @@ export async function createPartnerProfile(
 export async function updatePartnerProfile(
   payload: PartnerProfilePayload
 ): Promise<PartnerProfile> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/profile", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
       ...(authHeader ? { Authorization: authHeader } : {}),
     },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
 
@@ -89,11 +89,10 @@ export async function updatePartnerProfile(
 }
 
 export async function getPartnerStore(): Promise<PartnerStore | null> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/store", {
     headers: authHeader ? { Authorization: authHeader } : undefined,
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -101,6 +100,10 @@ export async function getPartnerStore(): Promise<PartnerStore | null> {
 
   const data = await parseJson<PartnerStore | { message?: string }>(res);
   if (!res.ok) {
+    if (data && typeof data === "object" && "message" in data) {
+      const message = String(data.message || "").toLowerCase();
+      if (message.includes("not found")) return null;
+    }
     throw new Error(getErrorMessage(data, "Failed to load store"));
   }
   if (!data || !isPartnerStore(data)) return null;
@@ -108,15 +111,14 @@ export async function getPartnerStore(): Promise<PartnerStore | null> {
 }
 
 export async function createPartnerStore(payload: PartnerStorePayload): Promise<PartnerStore> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/store", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(authHeader ? { Authorization: authHeader } : {}),
     },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
 
@@ -128,15 +130,14 @@ export async function createPartnerStore(payload: PartnerStorePayload): Promise<
 }
 
 export async function updatePartnerStore(payload: PartnerStorePayload): Promise<PartnerStore> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/store", {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
       ...(authHeader ? { Authorization: authHeader } : {}),
     },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
 
@@ -148,12 +149,11 @@ export async function updatePartnerStore(payload: PartnerStorePayload): Promise<
 }
 
 export async function deletePartnerStore(): Promise<{ message?: string }> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch("/api/partner/store", {
     method: "DELETE",
     headers: authHeader ? { Authorization: authHeader } : undefined,
+    credentials: "include",
   });
 
   const data = await parseJson<{ message?: string }>(res);
@@ -164,12 +164,11 @@ export async function deletePartnerStore(): Promise<{ message?: string }> {
 }
 
 export async function setPartnerStoreStatus(action: "enable" | "disable") {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-  const authHeader = buildAuthHeader(token);
+  const authHeader = buildAuthHeader(getAuthToken());
   const res = await fetch(`/api/partner/store/${action}`, {
     method: "PUT",
     headers: authHeader ? { Authorization: authHeader } : undefined,
+    credentials: "include",
   });
 
   const data = await parseJson<{ message?: string }>(res);
@@ -184,6 +183,16 @@ function buildAuthHeader(token: string | null) {
   const trimmed = token.trim();
   if (!trimmed) return "";
   return /^bearer\s+/i.test(trimmed) ? trimmed : `Bearer ${trimmed}`;
+}
+
+function getAuthToken() {
+  if (typeof window === "undefined") return null;
+  const fromStorage = localStorage.getItem("auth_token");
+  if (fromStorage && fromStorage.trim()) return fromStorage;
+  const cookie = document.cookie || "";
+  const match = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  if (!match) return null;
+  return decodeURIComponent(match[1]);
 }
 
 function isPartnerProfile(payload: PartnerProfile | { message?: string }): payload is PartnerProfile {

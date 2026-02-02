@@ -65,8 +65,13 @@ function normalizePayload(payload: ApiPayload) {
 
 function resolveErrorMessage(payload: ApiPayload, fallback: string) {
   if (!payload || typeof payload !== "object") return fallback;
-  const typed = payload as { message?: string; status?: { message?: string } };
-  return typed.message || typed.status?.message || fallback;
+  const typed = payload as {
+    message?: string;
+    detail?: string;
+    title?: string;
+    status?: { message?: string };
+  };
+  return typed.message || typed.detail || typed.title || typed.status?.message || fallback;
 }
 
 export async function GET(req: Request) {
@@ -82,7 +87,7 @@ export async function GET(req: Request) {
   });
 
   if (res.status === 404) {
-    return NextResponse.json({ message: "Store not found" }, { status: 404 });
+    return NextResponse.json(null, { status: 200 });
   }
 
   const rawText = await res.text();
