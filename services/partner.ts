@@ -1,6 +1,11 @@
 import { getErrorMessage, parseJson } from "@/utils/http";
 import type { PartnerProfile, PartnerProfilePayload } from "@/types/partner";
 import type { PartnerStore, PartnerStorePayload } from "@/types/store";
+import type {
+  Category,
+  CategoryPageResponse,
+  CategoryPageResponseApi,
+} from "@/types/category";
 
 export type PartnerOverview = {
   activity: { label: string; value: number }[];
@@ -178,6 +183,50 @@ export async function setPartnerStoreStatus(action: "enable" | "disable") {
   return data ?? { message: "Updated" };
 }
 
+export async function getPartnerCategories(
+  pageNumber = 1,
+  pageSize = 10
+): Promise<CategoryPageResponse> {
+  const authHeader = buildAuthHeader(getAuthToken());
+  const params = new URLSearchParams({
+    pageNumber: String(pageNumber),
+    pageSize: String(pageSize),
+  });
+  const res = await fetch(`/api/partner/categories?${params.toString()}`, {
+    headers: authHeader ? { Authorization: authHeader } : undefined,
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  const data = await parseJson<CategoryPageResponseApi | { message?: string }>(res);
+  if (!res.ok || !data) {
+    throw new Error(getErrorMessage(data, "Failed to load categories"));
+  }
+  if (!isCategoryPageResponse(data)) {
+    throw new Error("Invalid category response");
+  }
+  return data;
+}
+
+export async function createPartnerCategory(categoryName: string): Promise<Category> {
+  const authHeader = buildAuthHeader(getAuthToken());
+  const res = await fetch("/api/partner/categories", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(authHeader ? { Authorization: authHeader } : {}),
+    },
+    credentials: "include",
+    body: JSON.stringify({ categoryName }),
+  });
+
+  const data = await parseJson<Category | { message?: string }>(res);
+  if (!res.ok || !data || !isCategory(data)) {
+    throw new Error(getErrorMessage(data, "Failed to create category"));
+  }
+  return data;
+}
+
 function buildAuthHeader(token: string | null) {
   if (!token) return "";
   const trimmed = token.trim();
@@ -212,5 +261,25 @@ function isPartnerStore(payload: PartnerStore | { message?: string }): payload i
     "name" in payload &&
     "description" in payload &&
     "address" in payload
+  );
+}
+
+function isCategory(payload: Category | { message?: string }): payload is Category {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    "name" in payload &&
+    "createdDate" in payload
+  );
+}
+
+function isCategoryPageResponse(
+  payload: CategoryPageResponseApi | { message?: string }
+): payload is CategoryPageResponse {
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    "categories" in payload &&
+    "pagination" in payload
   );
 }
