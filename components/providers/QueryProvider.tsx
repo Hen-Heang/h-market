@@ -2,7 +2,7 @@
 
 import { QueryCache, QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from   "sonner";
 
 export default function QueryProvider({ children }: { children: React.ReactNode }) {
   const [client] = useState(

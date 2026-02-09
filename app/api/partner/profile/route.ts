@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { PartnerProfile } from "@/types/partner";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 
@@ -31,11 +32,18 @@ function buildAuthHeader(raw: string | null) {
   return /^bearer\s+/i.test(trimmed) ? trimmed : `Bearer ${trimmed}`;
 }
 
-function getAuthHeader(req: Request) {
+async function getAuthHeader(req: Request) {
+  // Prefer explicit Authorization header from the client fetch
   const header = req.headers.get("authorization");
-  if (header) return header;
-  const cookie = req.headers.get("cookie") || "";
-  const match = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  if (header) return buildAuthHeader(header);
+
+  // Fallback to cookie (works for same-origin browser requests)
+  const cookieToken = (await cookies()).get("auth_token")?.value;
+  if (cookieToken) return buildAuthHeader(cookieToken);
+
+  // Final fallback: parse raw cookie header (for edge/runtime differences)
+  const rawCookie = req.headers.get("cookie") || "";
+  const match = rawCookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
   if (!match) return "";
   return buildAuthHeader(decodeURIComponent(match[1]));
 }
@@ -76,7 +84,7 @@ export async function GET(req: Request) {
     return NextResponse.json(MOCK_PROFILE, { headers: { "x-data-source": "mock" } });
   }
 
-  const auth = getAuthHeader(req);
+  const auth = await getAuthHeader(req);
   const res = await fetch(`${baseUrl}/${resolveProfilePath()}/`, {
     headers: auth ? { Authorization: auth } : undefined,
     cache: "no-store",
@@ -120,7 +128,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const auth = getAuthHeader(req);
+  const auth = await getAuthHeader(req);
   const res = await fetch(`${baseUrl}/${resolveProfilePath()}/`, {
     method: "POST",
     headers: {
@@ -156,7 +164,7 @@ export async function PUT(req: Request) {
     );
   }
 
-  const auth = getAuthHeader(req);
+  const auth = await getAuthHeader(req);
   const res = await fetch(`${baseUrl}/${resolveProfilePath()}/`, {
     method: "PUT",
     headers: {

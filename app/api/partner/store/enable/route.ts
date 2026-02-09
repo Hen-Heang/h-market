@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 
@@ -21,11 +22,15 @@ function buildAuthHeader(raw: string | null) {
   return /^bearer\s+/i.test(trimmed) ? trimmed : `Bearer ${trimmed}`;
 }
 
-function getAuthHeader(req: Request) {
+async function getAuthHeader(req: Request) {
   const header = req.headers.get("authorization");
-  if (header) return header;
-  const cookie = req.headers.get("cookie") || "";
-  const match = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  if (header) return buildAuthHeader(header);
+
+  const cookieToken = (await cookies()).get("auth_token")?.value;
+  if (cookieToken) return buildAuthHeader(cookieToken);
+
+  const rawCookie = req.headers.get("cookie") || "";
+  const match = rawCookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
   if (!match) return "";
   return buildAuthHeader(decodeURIComponent(match[1]));
 }
@@ -39,7 +44,7 @@ export async function PUT(req: Request) {
     );
   }
 
-  const auth = getAuthHeader(req);
+  const auth = await getAuthHeader(req);
   const res = await fetch(`${baseUrl}/${resolveStorePath()}/enable`, {
     method: "PUT",
     headers: auth ? { Authorization: auth } : undefined,

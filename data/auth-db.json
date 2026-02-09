@@ -9,6 +9,36 @@
       "emailVerifiedAt": "2026-01-26T14:45:37.855Z",
       "createdAt": "2026-01-26T14:45:37.855Z",
       "updatedAt": "2026-01-26T14:45:37.855Z"
+    },
+    {
+      "id": "905dcf69-9643-4e68-ac5c-0d8b6d134fc0",
+      "email": "heang@gmail.com",
+      "passwordHash": "ca4a221126eeb4f7639a3f2b2b3adcee58914f0c2963f47a99550cf47228eb77034f749310f1578f71aef8b8856b005414b670ef5c7f515df24e8beb44ff520f",
+      "passwordSalt": "35d30637a486e507b2b100786bc7f696",
+      "roleId": 1,
+      "emailVerifiedAt": "2026-01-30T13:14:42.506Z",
+      "createdAt": "2026-01-30T13:14:42.506Z",
+      "updatedAt": "2026-01-30T13:14:42.506Z"
+    },
+    {
+      "id": "5e35052b-4264-4a7e-ab5c-8afc9e815175",
+      "email": "hengheng@gmail.com",
+      "passwordHash": "d82d9b0d282c8623c9898436301b4880a35d1eb9448ea9fb45c31f4bc49e8d5b629c6d02d7341fb485cc843f80f4a35044dfdd30648494cf1ffb5ac7e841da2e",
+      "passwordSalt": "1736ccc29d1ab84ee9e6df5229ca3324",
+      "roleId": 1,
+      "emailVerifiedAt": "2026-01-30T13:28:50.167Z",
+      "createdAt": "2026-01-30T13:28:50.167Z",
+      "updatedAt": "2026-01-30T13:28:50.167Z"
+    },
+    {
+      "id": "6fbabe8a-94b0-47cc-84df-1c6b27a32f00",
+      "email": "haha@gmail.com",
+      "passwordHash": "da6768c36a40b1702831aa07e08338c0f26d34148918b97e71f4130bc0b8bcf81bc11fb4988a4fe1bec33e0371726370d189b702a76f7da1ff2c896d409306ea",
+      "passwordSalt": "4f3d1984065fe9f2c31bbeab7204c0cc",
+      "roleId": 1,
+      "emailVerifiedAt": "2026-01-30T14:09:10.405Z",
+      "createdAt": "2026-01-30T14:09:10.405Z",
+      "updatedAt": "2026-01-30T14:09:10.405Z"
     }
   ]
 }

@@ -60,6 +60,8 @@ export async function POST(req: Request) {
     body: JSON.stringify({ email, password }),
   });
 
+  const headerAuth = res.headers.get("authorization") || res.headers.get("Authorization");
+
   const payload = (await res.json().catch(() => null)) as
     | {
         data?: { token?: string; userId?: number; roleId?: number };
@@ -79,6 +81,7 @@ export async function POST(req: Request) {
           token?: string;
           accessToken?: string;
           access_token?: string;
+          jwt?: string;
           userId?: number;
           roleId?: number;
           user?: { id?: number; roleId?: number; role_id?: number };
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
         token?: string;
         accessToken?: string;
         access_token?: string;
+        jwt?: string;
         userId?: number;
         roleId?: number;
       }
@@ -99,9 +103,12 @@ export async function POST(req: Request) {
     data.token ||
     data.accessToken ||
     data.access_token ||
+    data.jwt ||
     typedPayload?.token ||
     typedPayload?.accessToken ||
-    typedPayload?.access_token;
+    typedPayload?.access_token ||
+    typedPayload?.jwt ||
+    (headerAuth && headerAuth.replace(/^Bearer\\s+/i, ""));
   const userId = data.userId || typedPayload?.userId || data.user?.id;
   const roleId =
     data.roleId || typedPayload?.roleId || data.user?.roleId || data.user?.role_id;
